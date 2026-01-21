@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       };
 
       data = {
-        cedula: getVal(['cédula', 'cedula', 'id']),
+        cedula: getVal(['cédula', 'cedula']),
         nombre: getVal(['nombre', 'first name']),
         apellido: getVal(['apellido', 'last name']),
         foto_cedula: getFileUrls(['foto', 'photo', 'imagen']),
