@@ -15,13 +15,22 @@ export async function POST(req: NextRequest) {
         const field = fields.find((f: any) => 
           keywords.some(k => f.label?.toLowerCase().includes(k.toLowerCase()))
         );
-        return field?.value;
+        
+        if (!field) return undefined;
+
+        // Handle Dropdowns (value is array of IDs, we want text)
+        if (field.type === 'DROPDOWN' && field.options && Array.isArray(field.value)) {
+           const selectedOptions = field.options.filter((opt: any) => field.value.includes(opt.id));
+           return selectedOptions.map((opt: any) => opt.text).join(', ');
+        }
+
+        return field.value;
       };
 
       // Helper for file uploads (Tally returns array of objects with url)
       const getFileUrls = (keywords: string[]) => {
         const val = getVal(keywords);
-        if (Array.isArray(val)) return val.map((v: any) => v.url);
+        if (Array.isArray(val)) return val.map((v: any) => v.url).filter(Boolean);
         return val ? [val] : [];
       };
 
@@ -38,7 +47,7 @@ export async function POST(req: NextRequest) {
         meses_en_empresa: getVal(['tiempo', 'antigüedad', 'meses']),
         inicio_contrato: getVal(['inicio', 'fecha de ingreso']),
         monto_solicitado: getVal(['monto', 'cantidad', 'amount']),
-        duracion_meses: getVal(['plazo', 'duración', 'meses a pagar']),
+        duracion_meses: getVal(['plazo', 'duración', 'duracion', 'meses a pagar']),
         tipo_cuenta_bancaria: getVal(['tipo de cuenta', 'ahorro', 'corriente']),
         numero_cuenta: getVal(['número de cuenta', 'numero de cuenta', 'account number']),
         banco: getVal(['banco', 'bank']),
