@@ -3,6 +3,10 @@ import { db } from '@/lib/db';
 import { persons, solicitudes, companies } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 
+export async function GET() {
+  return NextResponse.json({ status: 'active', message: 'Tally webhook endpoint is ready' });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
