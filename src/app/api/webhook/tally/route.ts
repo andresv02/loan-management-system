@@ -6,6 +6,44 @@ import { eq } from 'drizzle-orm';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    let data = body;
+
+    // Handle Tally webhook structure
+    if (body.data && Array.isArray(body.data.fields)) {
+      const fields = body.data.fields;
+      const getVal = (keywords: string[]) => {
+        const field = fields.find((f: any) => 
+          keywords.some(k => f.label?.toLowerCase().includes(k.toLowerCase()))
+        );
+        return field?.value;
+      };
+
+      // Helper for file uploads (Tally returns array of objects with url)
+      const getFileUrls = (keywords: string[]) => {
+        const val = getVal(keywords);
+        if (Array.isArray(val)) return val.map((v: any) => v.url);
+        return val ? [val] : [];
+      };
+
+      data = {
+        cedula: getVal(['cédula', 'cedula', 'id']),
+        nombre: getVal(['nombre', 'first name']),
+        apellido: getVal(['apellido', 'last name']),
+        foto_cedula: getFileUrls(['foto', 'photo', 'imagen']),
+        email: getVal(['email', 'correo']),
+        telefono: getVal(['teléfono', 'telefono', 'celular', 'phone']),
+        direccion: getVal(['dirección', 'direccion', 'address']),
+        empresa: getVal(['empresa', 'lugar de trabajo', 'company']),
+        salario_mensual: getVal(['salario', 'ingreso', 'salary']),
+        meses_en_empresa: getVal(['tiempo', 'antigüedad', 'meses']),
+        inicio_contrato: getVal(['inicio', 'fecha de ingreso']),
+        monto_solicitado: getVal(['monto', 'cantidad', 'amount']),
+        duracion_meses: getVal(['plazo', 'duración', 'meses a pagar']),
+        tipo_cuenta_bancaria: getVal(['tipo de cuenta', 'ahorro', 'corriente']),
+        numero_cuenta: getVal(['número de cuenta', 'numero de cuenta', 'account number']),
+        banco: getVal(['banco', 'bank']),
+      };
+    }
 
     const {
       cedula,
@@ -24,7 +62,7 @@ export async function POST(req: NextRequest) {
       tipo_cuenta_bancaria,
       numero_cuenta,
       banco,
-    } = body;
+    } = data;
 
     // Do not auto-create company. Operator assigns manually during approval.
 
