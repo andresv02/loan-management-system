@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
         inicio_contrato: getVal(['inicio', 'fecha de ingreso']),
         monto_solicitado: getVal(['monto', 'cantidad', 'amount']),
         duracion_meses: getVal(['plazo', 'duración', 'duracion', 'meses a pagar']),
-        tipo_cuenta_bancaria: getVal(['tipo de cuenta', 'ahorro', 'corriente']),
-        numero_cuenta: getVal(['número de cuenta', 'numero de cuenta', 'account number']),
+        tipo_cuenta_bancaria: getVal(['tipo de cuenta', 'tipo cuenta', 'ahorro', 'corriente']),
+        numero_cuenta: getVal(['número de cuenta', 'numero de cuenta', 'numero cuenta', 'account number']),
         banco: getVal(['banco', 'bank']),
       };
     }
