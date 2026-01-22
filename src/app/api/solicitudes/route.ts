@@ -4,6 +4,8 @@ import { solicitudes } from '@/lib/schema';
 import { count, eq, ilike, and, gte, lte, desc } from 'drizzle-orm';
 import { NewSolicitud } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);

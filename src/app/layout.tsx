@@ -10,6 +10,8 @@ import { db } from '@/lib/db';
 import { solicitudes } from '@/lib/schema';
 import { eq, count } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Créditos Nacionales',
   description: 'Sistema de gestión de micropréstamos',
