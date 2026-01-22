@@ -5,6 +5,19 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function formatCurrency(amount: number | string) {
+  const val = typeof amount === 'string' ? parseFloat(amount) : amount;
+  return new Intl.NumberFormat('es-PA', {
+    style: 'currency',
+    currency: 'PAB',
+  }).format(val);
+}
+
+export function formatDate(date: string | Date) {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('es-PA');
+}
+
 /**
  * Get the current date in Panama timezone (UTC-5)
  * Returns the date as a Date object

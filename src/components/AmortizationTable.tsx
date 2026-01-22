@@ -8,7 +8,8 @@ import {
 } from '@/components/ui/table';
 import type { AmortRow } from '@/types';
 import { recordPayment, revertPayment } from '@/lib/actions';
-import { getEffectiveEstado } from '@/lib/utils';
+import { getEffectiveEstado, formatCurrency } from '@/lib/utils';
+import { AMORTIZATION_STATUS } from '@/lib/constants';
 import { useState } from 'react';
 import {
   AlertDialog,
@@ -69,27 +70,27 @@ export function AmortizationTable({ data, prestamoId }: AmortizationTableProps) 
               const estadoLabel = effectiveEstado.charAt(0).toUpperCase() + effectiveEstado.slice(1);
               
               // Check if previous row is paid (or if it's the first row)
-              const isPreviousPaid = index === 0 || data[index - 1].estado === 'pagada';
-              const isNextPaid = index < data.length - 1 && data[index + 1].estado === 'pagada';
+              const isPreviousPaid = index === 0 || data[index - 1].estado === AMORTIZATION_STATUS.PAID;
+              const isNextPaid = index < data.length - 1 && data[index + 1].estado === AMORTIZATION_STATUS.PAID;
               
               // Disable if previous is not paid (force sequential)
               // Also disable unchecking if next is paid (force sequential reversal)
-              const isDisabled = !isPreviousPaid || (row.estado === 'pagada' && isNextPaid);
+              const isDisabled = !isPreviousPaid || (row.estado === AMORTIZATION_STATUS.PAID && isNextPaid);
 
               return (
                 <TableRow key={row.quincenaNum}>
                   <TableCell>{row.quincenaNum}</TableCell>
                   <TableCell>{row.fechaQuincena}</TableCell>
-                  <TableCell>${row.cuotaQuincenal}</TableCell>
-                  <TableCell>${row.interes}</TableCell>
-                  <TableCell>${row.capital}</TableCell>
-                  <TableCell>${row.saldoInicial}</TableCell>
-                  <TableCell>${row.saldoFinal}</TableCell>
+                  <TableCell>{formatCurrency(row.cuotaQuincenal)}</TableCell>
+                  <TableCell>{formatCurrency(row.interes)}</TableCell>
+                  <TableCell>{formatCurrency(row.capital)}</TableCell>
+                  <TableCell>{formatCurrency(row.saldoInicial)}</TableCell>
+                  <TableCell>{formatCurrency(row.saldoFinal)}</TableCell>
                   <TableCell>
                     <span className={
-                      effectiveEstado === 'atrasada'
+                      effectiveEstado === AMORTIZATION_STATUS.LATE
                         ? 'text-red-600 font-semibold'
-                        : effectiveEstado === 'pagada'
+                        : effectiveEstado === AMORTIZATION_STATUS.PAID
                         ? 'text-green-600 font-semibold'
                         : ''
                     }>
@@ -99,7 +100,7 @@ export function AmortizationTable({ data, prestamoId }: AmortizationTableProps) 
                   <TableCell className="text-right">
                     <input
                       type="checkbox"
-                      checked={row.estado === 'pagada'}
+                      checked={row.estado === AMORTIZATION_STATUS.PAID}
                       disabled={isDisabled}
                       onChange={(e) => handleCheckboxChange(e.target.checked, row)}
                       className={`h-4 w-4 rounded border-2 border-gray-300 

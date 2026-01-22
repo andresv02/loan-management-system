@@ -18,13 +18,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -44,37 +37,13 @@ import {
 
 import { AmortizationTable } from './AmortizationTable';
 import { deletePrestamo } from '@/lib/actions';
-import { cn, getEffectivePrestamoEstado } from '@/lib/utils';
+import { cn, getEffectivePrestamoEstado, formatCurrency, formatDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-
-import type { AmortRow } from '@/types';
-
-interface Company {
-  id: number;
-  name: string;
-}
-
-interface PrestamoWithDetails {
-  id: number;
-  principal: string;
-  cuotaQuincenal: string;
-  saldoPendiente: string;
-  proximoPago: string;
-  interesTotal: string;
-  estado: string;
-  empresa: string;
-  cedula: string;
-  nombre: string;
-  amortizacion: AmortRow[];
-}
+import { LOAN_STATUS } from '@/lib/constants';
+import { useLoanExport } from '@/hooks/use-loan-export';
+import { PrestamosExportDialog } from './PrestamosExportDialog';
+import { PrestamosMobileCard } from './PrestamosMobileCard';
+import { PrestamoWithDetails, Company } from '@/types/app';
 
 interface PrestamosTableProps {
   data: PrestamoWithDetails[];
@@ -83,7 +52,7 @@ interface PrestamosTableProps {
 export default function PrestamosTable({ data }: PrestamosTableProps) {
   const [expanded, setExpanded] = useState({});
 
-  const [estadoFilter, setEstadoFilter] = useState<string>('activa');
+  const [estadoFilter, setEstadoFilter] = useState<string>(LOAN_STATUS.ACTIVE);
   const [subEstadoFilter, setSubEstadoFilter] = useState<'todos' | 'atrasada'>('todos');
 
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -92,6 +61,7 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
   const { toast } = useToast();
+  const { exportLoans } = useLoanExport();
 
   const fetchCompanies = async () => {
     try {
@@ -121,108 +91,25 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
     return data.filter((item) => {
       const effectiveEstado = getEffectivePrestamoEstado(item.estado, item.amortizacion);
       
-      if (estadoFilter !== 'activa') {
+      if (estadoFilter !== LOAN_STATUS.ACTIVE) {
         return effectiveEstado === estadoFilter;
       }
       
       // For activa, apply subfilter
-      if (subEstadoFilter === 'atrasada') {
-        return effectiveEstado === 'atrasada';
+      if (subEstadoFilter === LOAN_STATUS.LATE) {
+        return effectiveEstado === LOAN_STATUS.LATE;
       }
       
       // 'todos' shows all activa (including atrasada)
-      return effectiveEstado === 'activa' || effectiveEstado === 'atrasada';
+      return effectiveEstado === LOAN_STATUS.ACTIVE || effectiveEstado === LOAN_STATUS.LATE;
     });
   }, [data, estadoFilter, subEstadoFilter]);
 
-  const handleExport = async () => {
-    if (!selectedCompany || !data.length) {
-      return;
-    }
-
-    const companyLoans = data.filter((prestamo) => prestamo.empresa === selectedCompany.name);
-
-    if (companyLoans.length === 0) {
-      toast({
-        title: "Sin datos",
-        description: `No hay préstamos para la empresa "${selectedCompany.name}".`,
-      });
-      return;
-    }
-
-    // Headers
-    const headers = [
-      "ID",
-      "Cédula",
-      "Nombre",
-      "Empresa",
-      "Principal",
-      "Cuota Quincenal",
-      "Saldo Pendiente",
-      "Próximo Pago",
-      "Interés Total",
-      "Tasa (%)",
-      "Estado",
-    ];
-
-    // Rows
-    const rows = companyLoans.map((prestamo) => {
-      const effectiveEstado = getEffectivePrestamoEstado(prestamo.estado, prestamo.amortizacion);
-      const tasa = ((parseFloat(prestamo.interesTotal) / parseFloat(prestamo.principal)) * 100).toFixed(1);
-
-      return [
-        prestamo.id.toString(),
-        prestamo.cedula,
-        prestamo.nombre,
-        prestamo.empresa,
-        parseFloat(prestamo.principal).toLocaleString("es-PA", {
-          style: "currency",
-          currency: "PAB",
-        }),
-        parseFloat(prestamo.cuotaQuincenal).toLocaleString("es-PA", {
-          style: "currency",
-          currency: "PAB",
-        }),
-        parseFloat(prestamo.saldoPendiente).toLocaleString("es-PA", {
-          style: "currency",
-          currency: "PAB",
-        }),
-        new Date(prestamo.proximoPago).toLocaleDateString("es-PA"),
-        parseFloat(prestamo.interesTotal).toLocaleString("es-PA", {
-          style: "currency",
-          currency: "PAB",
-        }),
-        `${tasa}%`,
-        effectiveEstado.charAt(0).toUpperCase() + effectiveEstado.slice(1),
-      ];
+  const handleExport = () => {
+    exportLoans(data, selectedCompany, () => {
+      setExportDialogOpen(false);
+      setSelectedCompany(null);
     });
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((field) => `"${field}"`).join(",")),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `prestamos-${selectedCompany.name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase()}.csv`
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: "¡Exportado!",
-      description: `Reporte de ${companyLoans.length} préstamos de ${selectedCompany.name} descargado.`,
-    });
-
-    setExportDialogOpen(false);
-    setSelectedCompany(null);
   };
 
   const columns: ColumnDef<PrestamoWithDetails>[] = [
@@ -266,54 +153,27 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
     {
       accessorKey: 'principal',
       header: 'Principal',
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('principal'));
-        return new Intl.NumberFormat('es-PA', {
-          style: 'currency',
-          currency: 'PAB',
-        }).format(amount);
-      },
+      cell: ({ row }) => formatCurrency(row.getValue('principal')),
     },
     {
       accessorKey: 'cuotaQuincenal',
       header: 'Cuota',
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('cuotaQuincenal'));
-        return new Intl.NumberFormat('es-PA', {
-          style: 'currency',
-          currency: 'PAB',
-        }).format(amount);
-      },
+      cell: ({ row }) => formatCurrency(row.getValue('cuotaQuincenal')),
     },
     {
       accessorKey: 'saldoPendiente',
       header: 'Saldo Pendiente',
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('saldoPendiente'));
-        return new Intl.NumberFormat('es-PA', {
-          style: 'currency',
-          currency: 'PAB',
-        }).format(amount);
-      },
+      cell: ({ row }) => formatCurrency(row.getValue('saldoPendiente')),
     },
     {
       accessorKey: 'proximoPago',
       header: 'Próximo Pago',
-      cell: ({ row }) => {
-        const date = new Date(row.getValue('proximoPago'));
-        return date.toLocaleDateString('es-PA');
-      },
+      cell: ({ row }) => formatDate(row.getValue('proximoPago')),
     },
     {
       accessorKey: 'interesTotal',
       header: 'Interés Total',
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('interesTotal'));
-        return new Intl.NumberFormat('es-PA', {
-          style: 'currency',
-          currency: 'PAB',
-        }).format(amount);
-      },
+      cell: ({ row }) => formatCurrency(row.getValue('interesTotal')),
     },
     {
       id: 'tasaInteres',
@@ -335,11 +195,11 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
         
         return (
           <span className={
-            effectiveEstado === 'atrasada'
+            effectiveEstado === LOAN_STATUS.LATE
               ? 'text-red-600 font-semibold'
-              : effectiveEstado === 'completada'
+              : effectiveEstado === LOAN_STATUS.COMPLETED
               ? 'text-green-600 font-semibold'
-              : effectiveEstado === 'activa'
+              : effectiveEstado === LOAN_STATUS.ACTIVE
               ? 'text-blue-600 font-semibold'
               : ''
           }>
@@ -407,20 +267,20 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="activa">Activa</SelectItem>
-                <SelectItem value="completada">Completada</SelectItem>
-                <SelectItem value="rechazada">Rechazada</SelectItem>
+                <SelectItem value={LOAN_STATUS.ACTIVE}>Activa</SelectItem>
+                <SelectItem value={LOAN_STATUS.COMPLETED}>Completada</SelectItem>
+                <SelectItem value={LOAN_STATUS.REJECTED}>Rechazada</SelectItem>
               </SelectContent>
             </Select>
             
-            {estadoFilter === 'activa' && (
+            {estadoFilter === LOAN_STATUS.ACTIVE && (
               <Select value={subEstadoFilter} onValueChange={(value: 'todos' | 'atrasada') => setSubEstadoFilter(value)}>
                 <SelectTrigger className="w-full sm:w-[160px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos Activos</SelectItem>
-                  <SelectItem value="atrasada">Solo Atrasadas</SelectItem>
+                  <SelectItem value={LOAN_STATUS.LATE}>Solo Atrasadas</SelectItem>
                 </SelectContent>
               </Select>
             )}
@@ -436,47 +296,15 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
       </div>
       </div>
 
-      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Exportar Préstamos</DialogTitle>
-            <DialogDescription>
-              Selecciona una empresa para exportar todos sus préstamos en formato CSV.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <Select
-              value={selectedCompany ? selectedCompany.id.toString() : ""}
-              onValueChange={(value) => {
-                const company = companies.find(c => c.id.toString() === value);
-                setSelectedCompany(company || null);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={loadingCompanies ? "Cargando empresas..." : "Selecciona una empresa"} />
-              </SelectTrigger>
-              <SelectContent>
-                {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.id.toString()}>
-                    {company.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setExportDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleExport}
-              disabled={!selectedCompany || loadingCompanies}
-            >
-              Exportar CSV
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PrestamosExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        companies={companies}
+        loadingCompanies={loadingCompanies}
+        selectedCompany={selectedCompany}
+        onSelectCompany={setSelectedCompany}
+        onExport={handleExport}
+      />
 
       {/* Desktop View */}
       <div className="hidden md:block rounded-md border bg-background">
@@ -538,8 +366,8 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
                 <TableCell colSpan={columns.length} className="h-24 text-center">
                   {(() => {
                     if (estadoFilter === 'todos') return 'No hay préstamos.';
-                    if (estadoFilter === 'activa') {
-                      return subEstadoFilter === 'atrasada'
+                    if (estadoFilter === LOAN_STATUS.ACTIVE) {
+                      return subEstadoFilter === LOAN_STATUS.LATE
                         ? 'No hay préstamos atrasados.'
                         : 'No hay préstamos activos.';
                     }
@@ -555,116 +383,20 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
       {/* Mobile View */}
       <div className="grid grid-cols-1 gap-4 md:hidden">
         {table.getRowModel().rows?.length ? (
-          table.getRowModel().rows.map((row) => {
-            const prestamo = row.original;
-            const effectiveEstado = getEffectivePrestamoEstado(prestamo.estado, prestamo.amortizacion);
-            const estadoLabel = effectiveEstado.charAt(0).toUpperCase() + effectiveEstado.slice(1);
-            
-            return (
-              <Card key={row.id} className="shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-bold flex justify-between items-start">
-                    <span>{prestamo.nombre}</span>
-                    <span className={cn(
-                      "text-sm px-2 py-1 rounded-full",
-                      effectiveEstado === 'atrasada'
-                        ? 'bg-red-100 text-red-700'
-                        : effectiveEstado === 'completada'
-                        ? 'bg-green-100 text-green-700'
-                        : effectiveEstado === 'activa'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-gray-100 text-gray-700'
-                    )}>
-                      {estadoLabel}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">ID</p>
-                      <p className="font-medium">#{prestamo.id}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Cedula</p>
-                      <p className="font-medium">{prestamo.cedula}</p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-muted-foreground">Empresa</p>
-                      <p className="font-medium">{prestamo.empresa}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Principal</p>
-                      <p className="font-medium">
-                        {new Intl.NumberFormat('es-PA', {
-                          style: 'currency',
-                          currency: 'PAB',
-                        }).format(parseFloat(prestamo.principal))}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Saldo Pendiente</p>
-                      <p className="font-bold text-emerald-600">
-                        {new Intl.NumberFormat('es-PA', {
-                          style: 'currency',
-                          currency: 'PAB',
-                        }).format(parseFloat(prestamo.saldoPendiente))}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Cuota</p>
-                      <p className="font-medium">
-                        {new Intl.NumberFormat('es-PA', {
-                          style: 'currency',
-                          currency: 'PAB',
-                        }).format(parseFloat(prestamo.cuotaQuincenal))}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Próximo Pago</p>
-                      <p className="font-medium">
-                        {new Date(prestamo.proximoPago).toLocaleDateString('es-PA')}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 pt-2 border-t">
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => row.toggleExpanded()}
-                    >
-                      {row.getIsExpanded() ? 'Ocultar Tabla de Pagos' : 'Ver Tabla de Pagos'}
-                    </Button>
-                    
-                    {row.getIsExpanded() && (
-                      <div className="mt-2 overflow-x-auto">
-                        <AmortizationTable data={prestamo.amortizacion} prestamoId={prestamo.id} />
-                      </div>
-                    )}
-
-                    <div className="flex gap-2 mt-2">
-                      <Button 
-                        variant="destructive" 
-                        size="sm" 
-                        className="flex-1"
-                        onClick={() => deletePrestamo(prestamo.id)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Eliminar
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
+          table.getRowModel().rows.map((row) => (
+            <PrestamosMobileCard
+              key={row.id}
+              prestamo={row.original}
+              isExpanded={row.getIsExpanded()}
+              toggleExpanded={() => row.toggleExpanded()}
+            />
+          ))
         ) : (
           <div className="text-center p-8 bg-white rounded-lg border text-muted-foreground">
             {(() => {
               if (estadoFilter === 'todos') return 'No hay préstamos.';
-              if (estadoFilter === 'activa') {
-                return subEstadoFilter === 'atrasada'
+              if (estadoFilter === LOAN_STATUS.ACTIVE) {
+                return subEstadoFilter === LOAN_STATUS.LATE
                   ? 'No hay préstamos atrasados.'
                   : 'No hay préstamos activos.';
               }
