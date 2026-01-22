@@ -64,10 +64,18 @@ export function AmortizationTable({ data, prestamoId }: AmortizationTableProps) 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((row) => {
+            {data.map((row, index) => {
               const effectiveEstado = getEffectiveEstado(row.estado, row.fechaQuincena);
               const estadoLabel = effectiveEstado.charAt(0).toUpperCase() + effectiveEstado.slice(1);
               
+              // Check if previous row is paid (or if it's the first row)
+              const isPreviousPaid = index === 0 || data[index - 1].estado === 'pagada';
+              const isNextPaid = index < data.length - 1 && data[index + 1].estado === 'pagada';
+              
+              // Disable if previous is not paid (force sequential)
+              // Also disable unchecking if next is paid (force sequential reversal)
+              const isDisabled = !isPreviousPaid || (row.estado === 'pagada' && isNextPaid);
+
               return (
                 <TableRow key={row.quincenaNum}>
                   <TableCell>{row.quincenaNum}</TableCell>
@@ -92,8 +100,11 @@ export function AmortizationTable({ data, prestamoId }: AmortizationTableProps) 
                     <input
                       type="checkbox"
                       checked={row.estado === 'pagada'}
+                      disabled={isDisabled}
                       onChange={(e) => handleCheckboxChange(e.target.checked, row)}
-                      className="h-4 w-4 rounded border-2 border-gray-300 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
+                      className={`h-4 w-4 rounded border-2 border-gray-300 
+                        data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 
+                        ${isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'cursor-pointer'}`}
                     />
                   </TableCell>
                 </TableRow>
