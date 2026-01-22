@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
-export function Navigation() {
+export function Navigation({ pendingCount = 0 }: { pendingCount?: number }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -58,7 +58,7 @@ export function Navigation() {
               <Button
                 variant={pathname === item.href ? 'default' : 'ghost'}
                 className={cn(
-                  'mr-1 px-4 py-2 rounded-lg transition-all duration-300',
+                  'mr-1 px-4 py-2 rounded-lg transition-all duration-300 relative',
                   pathname === item.href
                     ? 'bg-slate-800 text-white shadow-sm hover:bg-slate-900'
                     : 'hover:bg-gray-50 text-gray-700 hover:text-slate-800'
@@ -66,6 +66,11 @@ export function Navigation() {
               >
                 <span className="mr-2">{item.icon}</span>
                 {item.label}
+                {item.label === 'Solicitudes' && pendingCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm">
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </span>
+                )}
               </Button>
             </Link>
           ))}
@@ -99,6 +104,11 @@ export function Navigation() {
                   >
                     <span className="mr-3 text-lg">{item.icon}</span>
                     {item.label}
+                    {item.label === 'Solicitudes' && pendingCount > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+                        {pendingCount > 9 ? '9+' : pendingCount}
+                      </span>
+                    )}
                   </Link>
                 </DropdownMenuItem>
               ))}

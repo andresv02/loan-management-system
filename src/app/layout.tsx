@@ -6,6 +6,9 @@ import { Navigation } from '@/components/Navigation';
 import { Toaster } from '@/components/ui/toaster';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { solicitudes } from '@/lib/schema';
+import { eq, count } from 'drizzle-orm';
 
 export const metadata: Metadata = {
   title: 'Créditos Nacionales',
@@ -22,10 +25,16 @@ export default async function RootLayout({
 }>) {
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
   
+  const pendingCountResult = await db.select({ count: count() })
+    .from(solicitudes)
+    .where(eq(solicitudes.estado, 'nueva'));
+  
+  const pendingCount = pendingCountResult[0]?.count || 0;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-gray-50 font-sans antialiased">
-        <Navigation />
+        <Navigation pendingCount={pendingCount} />
         <main className="relative">
           <div className="relative z-10">
             {children}

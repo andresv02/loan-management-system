@@ -59,6 +59,7 @@ export async function approveSolicitud(formData: FormData) {
 
   revalidatePath('/dashboard');
   revalidatePath('/solicitudes');
+  revalidatePath('/', 'layout');
 }
 
 export async function addCompany(name: string) {
@@ -155,6 +156,7 @@ export async function declineSolicitud(solicitudId: number) {
 
   revalidatePath('/solicitudes');
   revalidatePath('/dashboard');
+  revalidatePath('/', 'layout');
 }
 
 export async function deletePrestamo(prestamoId: number) {
