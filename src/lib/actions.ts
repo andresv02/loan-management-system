@@ -5,6 +5,8 @@ import { persons, solicitudes, prestamos, amortizacion, companies, pagos } from 
 import { eq, and, asc } from 'drizzle-orm';
 import { generateFrenchAmortization } from './amortization';
 import { revalidatePath } from 'next/cache';
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
 
 export async function approveSolicitud(formData: FormData) {
   const solicitudId = parseInt(formData.get('solicitudId') as string);
@@ -160,4 +162,119 @@ export async function deletePrestamo(prestamoId: number) {
   await db.delete(amortizacion).where(eq(amortizacion.prestamoId, prestamoId));
   revalidatePath('/dashboard');
   revalidatePath('/prestamos');
+}
+
+export async function createDirectLoan(formData: FormData) {
+  const cedula = formData.get('cedula') as string;
+  const nombre = formData.get('nombre') as string;
+  const apellido = formData.get('apellido') as string;
+  const email = formData.get('email') as string;
+  const telefono = formData.get('telefono') as string;
+  const direccion = formData.get('direccion') as string;
+  const salarioMensual = formData.get('salarioMensual') as string;
+  const mesesEnEmpresa = parseInt(formData.get('mesesEnEmpresa') as string) || 0;
+  const inicioContrato = formData.get('inicioContrato') as string;
+  
+  const montoSolicitado = formData.get('montoSolicitado') as string;
+  const duracionMeses = parseInt(formData.get('duracionMeses') as string);
+  const banco = formData.get('banco') as string;
+  const tipoCuentaBancaria = formData.get('tipoCuentaBancaria') as string;
+  const numeroCuenta = formData.get('numeroCuenta') as string;
+  const empresa = formData.get('empresa') as string;
+  const companyId = formData.get('companyId') ? parseInt(formData.get('companyId') as string) : null;
+
+  const interesDeseado = parseFloat(formData.get('interesDeseado') as string);
+  const proximoPagoStr = formData.get('proximoPago') as string;
+  const proximoPago = new Date(proximoPagoStr);
+
+  // Handle file upload
+  const fotoCedulaFile = formData.get('fotoCedula') as File;
+  let fotoCedula: string[] = [];
+
+  if (fotoCedulaFile && fotoCedulaFile.size > 0) {
+    const buffer = Buffer.from(await fotoCedulaFile.arrayBuffer());
+    const filename = `${Date.now()}-${fotoCedulaFile.name.replace(/\s/g, '_')}`;
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    
+    try {
+      await mkdir(uploadDir, { recursive: true });
+      await writeFile(path.join(uploadDir, filename), buffer);
+      fotoCedula = [`/uploads/${filename}`];
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
+  }
+
+  // Find or create person
+  let person = await db.query.persons.findFirst({
+    where: eq(persons.cedula, cedula),
+  });
+
+  if (!person) {
+    [person] = await db.insert(persons).values({
+      cedula,
+      nombre,
+      apellido,
+      email,
+      telefono,
+      direccion,
+      salarioMensual: salarioMensual || '0',
+      mesesEnEmpresa,
+      inicioContrato: inicioContrato || null,
+      companyId,
+    }).returning();
+  } else {
+    // Update existing person info
+    [person] = await db.update(persons).set({
+      nombre,
+      apellido,
+      email,
+      telefono,
+      direccion,
+      salarioMensual: salarioMensual || '0',
+      mesesEnEmpresa,
+      inicioContrato: inicioContrato || null,
+      companyId: companyId || person.companyId,
+    }).where(eq(persons.id, person.id)).returning();
+  }
+
+  // Create solicitud (Approved)
+  const [solicitud] = await db.insert(solicitudes).values({
+    personId: person.id,
+    montoSolicitado,
+    duracionMeses,
+    tipoCuentaBancaria,
+    numeroCuenta,
+    banco,
+    empresa,
+    fotoCedula,
+    estado: 'aprobada',
+  }).returning();
+
+  // Calculate Amortization
+  const principal = parseFloat(montoSolicitado);
+  const totalQuincenas = duracionMeses * 2;
+  const amortRows = generateFrenchAmortization(principal, interesDeseado, totalQuincenas, proximoPago);
+
+  // Create prestamo
+  const [prestamo] = await db.insert(prestamos).values({
+    solicitudId: solicitud.id,
+    principal: principal.toFixed(2),
+    interesTotal: interesDeseado.toFixed(2),
+    cuotaQuincenal: ((principal + interesDeseado) / totalQuincenas).toFixed(2),
+    totalQuincenas,
+    proximoPago: proximoPago.toISOString().split('T')[0],
+    saldoPendiente: principal.toFixed(2),
+  }).returning();
+
+  // Insert amort rows
+  await db.insert(amortizacion).values(
+    amortRows.map(row => ({
+      prestamoId: prestamo.id,
+      ...row
+    }))
+  );
+
+  revalidatePath('/prestamos');
+  revalidatePath('/dashboard');
 }

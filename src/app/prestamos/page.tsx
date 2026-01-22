@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { prestamos, amortizacion } from '@/lib/schema';
 import { asc, eq } from 'drizzle-orm';
 import PrestamosTable from '@/components/PrestamosTable';
+import { CreateLoanDialog } from '@/components/CreateLoanDialog';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 
@@ -24,21 +25,24 @@ export default async function PrestamosPage() {
   if (!session) {
     redirect('/login');
   }
-  // First get all prestamos
-  const prestamosData = await db.query.prestamos.findMany({
-    orderBy: [asc(prestamos.id)],
-    with: {
-      solicitud: {
-        with: {
-          person: {
-            with: {
-              company: true,
+  // First get all prestamos and companies
+  const [prestamosData, companiesData] = await Promise.all([
+    db.query.prestamos.findMany({
+      orderBy: [asc(prestamos.id)],
+      with: {
+        solicitud: {
+          with: {
+            person: {
+              with: {
+                company: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    }),
+    db.query.companies.findMany(),
+  ]);
 
   // Then get amortization data for each prestamo, ordered by quincena_num
   const data: PrestamoWithDetails[] = await Promise.all(
@@ -74,6 +78,10 @@ export default async function PrestamosPage() {
         </div>
 
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-gray-800">Listado de Préstamos</h2>
+            <CreateLoanDialog companies={companiesData} />
+          </div>
           <PrestamosTable data={data} />
         </div>
       </div>
