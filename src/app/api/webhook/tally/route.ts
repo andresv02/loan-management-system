@@ -10,17 +10,30 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log('Received Tally webhook payload:', JSON.stringify(body, null, 2));
     let data = body;
 
     // Handle Tally webhook structure
     if (body.data && Array.isArray(body.data.fields)) {
       const fields = body.data.fields;
       const getVal = (keywords: string[]) => {
-        const field = fields.find((f: any) => 
+        // Find all matching fields
+        const matchingFields = fields.filter((f: any) => 
           keywords.some(k => f.label?.toLowerCase().includes(k.toLowerCase()))
         );
         
-        if (!field) return undefined;
+        if (matchingFields.length === 0) return undefined;
+
+        // Sort by: has value (priority), then length of label (ascending) to prefer exact matches over "Confirmar..."
+        matchingFields.sort((a: any, b: any) => {
+            const aHasValue = a.value !== null && a.value !== undefined && a.value !== '' && (Array.isArray(a.value) ? a.value.length > 0 : true);
+            const bHasValue = b.value !== null && b.value !== undefined && b.value !== '' && (Array.isArray(b.value) ? b.value.length > 0 : true);
+            if (aHasValue && !bHasValue) return -1;
+            if (!aHasValue && bHasValue) return 1;
+            return (a.label?.length || 0) - (b.label?.length || 0);
+        });
+
+        const field = matchingFields[0];
 
         // Handle Dropdowns (value is array of IDs, we want text)
         if (field.type === 'DROPDOWN' && field.options && Array.isArray(field.value)) {
@@ -53,7 +66,10 @@ export async function POST(req: NextRequest) {
         monto_solicitado: getVal(['monto', 'cantidad', 'amount']),
         duracion_meses: getVal(['plazo', 'duración', 'duracion', 'meses a pagar']),
         tipo_cuenta_bancaria: getVal(['tipo de cuenta', 'tipo cuenta', 'ahorro', 'corriente']),
-        numero_cuenta: getVal(['número de cuenta', 'numero de cuenta', 'numero cuenta', 'account number']),
+        numero_cuenta: (() => {
+          const val = getVal(['número de cuenta', 'numero de cuenta', 'numero cuenta', 'account number']);
+          return val !== undefined && val !== null ? String(val) : null;
+        })(),
         banco: getVal(['banco', 'bank']),
       };
     }
