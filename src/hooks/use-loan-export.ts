@@ -14,7 +14,10 @@ export function useLoanExport() {
       return;
     }
 
-    const companyLoans = data.filter((prestamo) => prestamo.empresa === selectedCompany.name);
+    const companyLoans = data.filter((prestamo) => 
+      prestamo.empresa === selectedCompany.name && 
+      (prestamo.estado === 'activa' || prestamo.estado === 'atrasada')
+    );
 
     if (companyLoans.length === 0) {
       toast({
@@ -27,29 +30,38 @@ export function useLoanExport() {
     // Headers
     const headers = [
       "ID",
-      "Cédula",
+      "Cedula",
       "Nombre",
-      "Empresa",
       "Principal",
-      "Cuota Quincenal",
+      "Cuota",
+      "Fecha Inicio",
+      "Fecha Fin",
       "Saldo Pendiente",
-      "Próximo Pago",
-      "Interés Total",
-      "Tasa (%)",
-      "Estado",
     ];
 
     // Rows
     const rows = companyLoans.map((prestamo) => {
-      const effectiveEstado = getEffectivePrestamoEstado(prestamo.estado, prestamo.amortizacion);
-      const tasa = ((parseFloat(prestamo.interesTotal) / parseFloat(prestamo.principal)) * 100).toFixed(1);
+      // Sort amortizacion by quincenaNum to ensure correct order
+      const sortedAmort = [...prestamo.amortizacion].sort((a, b) => a.quincenaNum - b.quincenaNum);
+      
+      const fechaInicio = sortedAmort.length > 0 ? sortedAmort[0].fechaQuincena : "";
+      const fechaFin = sortedAmort.length > 0 ? sortedAmort[sortedAmort.length - 1].fechaQuincena : "";
+
+      const principalTotal = parseFloat(prestamo.principal);
+      const interesTotal = parseFloat(prestamo.interesTotal);
+      
+      // Sum of all Cuotas he has paid
+      const paidCuotasSum = sortedAmort
+        .filter(row => row.estado === 'pagada')
+        .reduce((sum, row) => sum + parseFloat(row.cuotaQuincenal), 0);
+
+      const saldoPendiente = (principalTotal + interesTotal) - paidCuotasSum;
 
       return [
         prestamo.id.toString(),
         prestamo.cedula,
         prestamo.nombre,
-        prestamo.empresa,
-        parseFloat(prestamo.principal).toLocaleString("es-PA", {
+        principalTotal.toLocaleString("es-PA", {
           style: "currency",
           currency: "PAB",
         }),
@@ -57,34 +69,33 @@ export function useLoanExport() {
           style: "currency",
           currency: "PAB",
         }),
-        parseFloat(prestamo.saldoPendiente).toLocaleString("es-PA", {
+        fechaInicio ? new Date(fechaInicio + 'T00:00:00').toLocaleDateString("es-PA") : "",
+        fechaFin ? new Date(fechaFin + 'T00:00:00').toLocaleDateString("es-PA") : "",
+        saldoPendiente.toLocaleString("es-PA", {
           style: "currency",
           currency: "PAB",
         }),
-        new Date(prestamo.proximoPago).toLocaleDateString("es-PA"),
-        parseFloat(prestamo.interesTotal).toLocaleString("es-PA", {
-          style: "currency",
-          currency: "PAB",
-        }),
-        `${tasa}%`,
-        effectiveEstado.charAt(0).toUpperCase() + effectiveEstado.slice(1),
       ];
     });
 
+    // Center the title by adding empty columns before it (approximate centering for 8 columns)
+    const emptyCols = ",,,"; 
+    const title1 = `${emptyCols}"Resumen Prestamos"`;
+    const title2 = `${emptyCols}"${selectedCompany.name} - ${new Date().toLocaleDateString("es-PA")}"`;
+
     const csvContent = [
+      title1,
+      title2,
       headers.join(","),
       ...rows.map((row) => row.map((field) => `"${field}"`).join(",")),
     ].join("\n");
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `prestamos-${selectedCompany.name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase()}.csv`
-    );
-    link.style.visibility = "hidden";
+    link.href = url;
+    const dateStr = new Date().toLocaleDateString("es-PA").replace(/\//g, "-");
+    link.download = `${selectedCompany.name} Prestamos ${dateStr}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -93,6 +104,7 @@ export function useLoanExport() {
     toast({
       title: "¡Exportado!",
       description: `Reporte de ${companyLoans.length} préstamos de ${selectedCompany.name} descargado.`,
+      duration: 5000,
     });
 
     if (onSuccess) {
