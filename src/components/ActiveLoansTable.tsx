@@ -11,7 +11,6 @@ import {
 } from '@tanstack/react-table';
 
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -208,12 +207,13 @@ export function ActiveLoansTable({ data }: ActiveLoansTableProps) {
   return (
     <div className="w-full">
       <div className="rounded-md border bg-background">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+        <div className="relative w-full overflow-auto max-h-[70vh]">
+          <table className="w-full caption-bottom text-sm">
+            <TableHeader className="sticky top-0 z-20 bg-background shadow-sm">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} className="bg-background">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -269,7 +269,8 @@ export function ActiveLoansTable({ data }: ActiveLoansTableProps) {
               </TableRow>
             )}
           </TableBody>
-        </Table>
+          </table>
+        </div>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">

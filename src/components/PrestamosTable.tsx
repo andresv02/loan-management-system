@@ -10,7 +10,6 @@ import {
 } from '@tanstack/react-table';
 
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -351,23 +350,24 @@ export default function PrestamosTable({ data, companies = [] }: PrestamosTableP
 
       {/* Desktop View */}
       <div className="hidden md:block rounded-md border bg-background">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
+        <div className="relative w-full overflow-auto max-h-[70vh]">
+          <table className="w-full caption-bottom text-sm">
+            <TableHeader className="sticky top-0 z-20 bg-background shadow-sm">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} className="bg-background">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
@@ -420,7 +420,8 @@ export default function PrestamosTable({ data, companies = [] }: PrestamosTableP
               </TableRow>
             )}
           </TableBody>
-        </Table>
+          </table>
+        </div>
       </div>
 
       {/* Mobile View */}
