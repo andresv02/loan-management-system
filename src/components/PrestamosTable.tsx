@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   ColumnDef,
   flexRender,
@@ -46,8 +46,21 @@ import { AmortizationTable } from './AmortizationTable';
 import { deletePrestamo } from '@/lib/actions';
 import { cn, getEffectivePrestamoEstado } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 import type { AmortRow } from '@/types';
+
+interface Company {
+  id: number;
+  name: string;
+}
 
 interface PrestamoWithDetails {
   id: number;
@@ -73,7 +86,36 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
   const [estadoFilter, setEstadoFilter] = useState<string>('activa');
   const [subEstadoFilter, setSubEstadoFilter] = useState<'todos' | 'atrasada'>('todos');
 
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+
   const { toast } = useToast();
+
+  const fetchCompanies = async () => {
+    try {
+      setLoadingCompanies(true);
+      const res = await fetch('/api/companies');
+      if (!res.ok) {
+        throw new Error('Failed to fetch companies');
+      }
+      const data: Company[] = await res.json();
+      setCompanies(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las empresas para exportar.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanies();
+  }, []);
 
   const filteredData = useMemo(() => {
     return data.filter((item) => {
@@ -92,6 +134,96 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
       return effectiveEstado === 'activa' || effectiveEstado === 'atrasada';
     });
   }, [data, estadoFilter, subEstadoFilter]);
+
+  const handleExport = async () => {
+    if (!selectedCompany || !data.length) {
+      return;
+    }
+
+    const companyLoans = data.filter((prestamo) => prestamo.empresa === selectedCompany.name);
+
+    if (companyLoans.length === 0) {
+      toast({
+        title: "Sin datos",
+        description: `No hay préstamos para la empresa "${selectedCompany.name}".`,
+      });
+      return;
+    }
+
+    // Headers
+    const headers = [
+      "ID",
+      "Cédula",
+      "Nombre",
+      "Empresa",
+      "Principal",
+      "Cuota Quincenal",
+      "Saldo Pendiente",
+      "Próximo Pago",
+      "Interés Total",
+      "Tasa (%)",
+      "Estado",
+    ];
+
+    // Rows
+    const rows = companyLoans.map((prestamo) => {
+      const effectiveEstado = getEffectivePrestamoEstado(prestamo.estado, prestamo.amortizacion);
+      const tasa = ((parseFloat(prestamo.interesTotal) / parseFloat(prestamo.principal)) * 100).toFixed(1);
+
+      return [
+        prestamo.id.toString(),
+        prestamo.cedula,
+        prestamo.nombre,
+        prestamo.empresa,
+        parseFloat(prestamo.principal).toLocaleString("es-PA", {
+          style: "currency",
+          currency: "PAB",
+        }),
+        parseFloat(prestamo.cuotaQuincenal).toLocaleString("es-PA", {
+          style: "currency",
+          currency: "PAB",
+        }),
+        parseFloat(prestamo.saldoPendiente).toLocaleString("es-PA", {
+          style: "currency",
+          currency: "PAB",
+        }),
+        new Date(prestamo.proximoPago).toLocaleDateString("es-PA"),
+        parseFloat(prestamo.interesTotal).toLocaleString("es-PA", {
+          style: "currency",
+          currency: "PAB",
+        }),
+        `${tasa}%`,
+        effectiveEstado.charAt(0).toUpperCase() + effectiveEstado.slice(1),
+      ];
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((field) => `"${field}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `prestamos-${selectedCompany.name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase()}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "¡Exportado!",
+      description: `Reporte de ${companyLoans.length} préstamos de ${selectedCompany.name} descargado.`,
+    });
+
+    setExportDialogOpen(false);
+    setSelectedCompany(null);
+  };
 
   const columns: ColumnDef<PrestamoWithDetails>[] = [
     {
@@ -121,11 +253,11 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
     },
     {
       accessorKey: 'cedula',
-      header: 'Cedula / Nombre',
-      cell: ({ row }) => {
-        const person = row.original;
-        return `${person.cedula} - ${person.nombre}`;
-      },
+      header: 'Cédula',
+    },
+    {
+      accessorKey: 'nombre',
+      header: 'Nombre',
     },
     {
       accessorKey: 'empresa',
@@ -264,10 +396,11 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
   return (
     <div className="w-full">
       <div className="mb-6 p-4 bg-muted/50 rounded-lg border">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Filtrar por estado:</span>
-          
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1">
+            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Filtrar por estado:</span>
+            
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Select value={estadoFilter} onValueChange={setEstadoFilter}>
               <SelectTrigger className="w-full sm:w-[140px]">
                 <SelectValue placeholder="Estado" />
@@ -293,7 +426,57 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
             )}
           </div>
         </div>
+        <Button
+          onClick={() => setExportDialogOpen(true)}
+          disabled={loadingCompanies || companies.length === 0}
+          className="whitespace-nowrap"
+        >
+          Exportar
+        </Button>
       </div>
+      </div>
+
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Exportar Préstamos</DialogTitle>
+            <DialogDescription>
+              Selecciona una empresa para exportar todos sus préstamos en formato CSV.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Select
+              value={selectedCompany ? selectedCompany.id.toString() : ""}
+              onValueChange={(value) => {
+                const company = companies.find(c => c.id.toString() === value);
+                setSelectedCompany(company || null);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={loadingCompanies ? "Cargando empresas..." : "Selecciona una empresa"} />
+              </SelectTrigger>
+              <SelectContent>
+                {companies.map((company) => (
+                  <SelectItem key={company.id} value={company.id.toString()}>
+                    {company.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setExportDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleExport}
+              disabled={!selectedCompany || loadingCompanies}
+            >
+              Exportar CSV
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Desktop View */}
       <div className="hidden md:block rounded-md border bg-background">

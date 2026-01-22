@@ -82,11 +82,11 @@ export default function SolicitudesTable({ data, companies }: SolicitudesTablePr
   const columns: ColumnDef<SolicitudWithPerson>[] = [
     {
       accessorKey: 'cedula',
-      header: 'Cedula / Nombre',
-      cell: ({ row }) => {
-        const s = row.original;
-        return `${s.cedula} - ${s.nombre}`;
-      },
+      header: 'Cédula',
+    },
+    {
+      accessorKey: 'nombre',
+      header: 'Nombre',
     },
     {
       accessorKey: 'empresa',

@@ -78,13 +78,11 @@ export function ActiveLoansTable({ data }: ActiveLoansTableProps) {
     },
     {
       accessorKey: 'cedula',
-      header: 'Cedula / Nombre',
-      cell: ({ row }) => {
-        const person = row.original;
-        return (
-          `${person.cedula} - ${person.nombre}`
-        );
-      },
+      header: 'Cédula',
+    },
+    {
+      accessorKey: 'nombre',
+      header: 'Nombre',
     },
     {
       accessorKey: 'empresa',
