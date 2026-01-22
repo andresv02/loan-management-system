@@ -16,24 +16,16 @@ export async function POST(req: NextRequest) {
     // Handle Tally webhook structure
     if (body.data && Array.isArray(body.data.fields)) {
       const fields = body.data.fields;
-      const getVal = (keywords: string[]) => {
-        // Find all matching fields
-        const matchingFields = fields.filter((f: any) => 
-          keywords.some(k => f.label?.toLowerCase().includes(k.toLowerCase()))
-        );
-        
-        if (matchingFields.length === 0) return undefined;
+      
+      // Helper to get field value by exact label match
+      const getFieldByLabel = (label: string) => {
+        return fields.find((f: any) => f.label === label);
+      };
 
-        // Sort by: has value (priority), then length of label (ascending) to prefer exact matches over "Confirmar..."
-        matchingFields.sort((a: any, b: any) => {
-            const aHasValue = a.value !== null && a.value !== undefined && a.value !== '' && (Array.isArray(a.value) ? a.value.length > 0 : true);
-            const bHasValue = b.value !== null && b.value !== undefined && b.value !== '' && (Array.isArray(b.value) ? b.value.length > 0 : true);
-            if (aHasValue && !bHasValue) return -1;
-            if (!aHasValue && bHasValue) return 1;
-            return (a.label?.length || 0) - (b.label?.length || 0);
-        });
-
-        const field = matchingFields[0];
+      // Helper to extract and process field value
+      const getVal = (label: string) => {
+        const field = getFieldByLabel(label);
+        if (!field || field.value === null || field.value === undefined) return undefined;
 
         // Handle Dropdowns (value is array of IDs, we want text)
         if (field.type === 'DROPDOWN' && field.options && Array.isArray(field.value)) {
@@ -45,33 +37,35 @@ export async function POST(req: NextRequest) {
       };
 
       // Helper for file uploads (Tally returns array of objects with url)
-      const getFileUrls = (keywords: string[]) => {
-        const val = getVal(keywords);
+      const getFileUrls = (label: string) => {
+        const val = getVal(label);
         if (Array.isArray(val)) return val.map((v: any) => v.url).filter(Boolean);
         return val ? [val] : [];
       };
 
       data = {
-        cedula: getVal(['cédula', 'cedula']),
-        nombre: getVal(['nombre', 'first name']),
-        apellido: getVal(['apellido', 'last name']),
-        foto_cedula: getFileUrls(['foto', 'photo', 'imagen']),
-        email: getVal(['email', 'correo']),
-        telefono: getVal(['teléfono', 'telefono', 'celular', 'phone']),
-        direccion: getVal(['dirección', 'direccion', 'address']),
-        empresa: getVal(['empresa', 'lugar de trabajo', 'company']),
-        salario_mensual: getVal(['salario', 'ingreso', 'salary']),
-        meses_en_empresa: getVal(['tiempo', 'antigüedad', 'meses']),
-        inicio_contrato: getVal(['inicio', 'fecha de ingreso']),
-        monto_solicitado: getVal(['monto', 'cantidad', 'amount']),
-        duracion_meses: getVal(['plazo', 'duración', 'duracion', 'meses a pagar']),
-        tipo_cuenta_bancaria: getVal(['tipo de cuenta', 'tipo cuenta', 'ahorro', 'corriente']),
+        cedula: getVal('cedula'),
+        nombre: getVal('nombre'),
+        apellido: getVal('apellido'),
+        foto_cedula: getFileUrls('foto_cedula'),
+        email: getVal('email'),
+        telefono: getVal('telefono'),
+        direccion: getVal('direccion'),
+        empresa: getVal('Empresa'),
+        salario_mensual: getVal('salario_mensual'),
+        meses_en_empresa: getVal('meses_en_empresa'),
+        inicio_contrato: getVal('inicio_contrato'),
+        monto_solicitado: getVal('monto_solicitado'),
+        duracion_meses: getVal('duracion_meses'),
+        tipo_cuenta_bancaria: getVal('tipo_cuenta_bancaria'),
         numero_cuenta: (() => {
-          const val = getVal(['número de cuenta', 'numero de cuenta', 'numero cuenta', 'account number']);
+          const val = getVal('numero_cuenta');
           return val !== undefined && val !== null ? String(val) : null;
         })(),
-        banco: getVal(['banco', 'bank']),
+        banco: getVal('Banco'),
       };
+      
+      console.log('Extracted data:', JSON.stringify(data, null, 2));
     }
 
     const {
