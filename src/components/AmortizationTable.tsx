@@ -1,5 +1,4 @@
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -50,20 +49,21 @@ export function AmortizationTable({ data, prestamoId }: AmortizationTableProps) 
   return (
     <div className="w-full">
       <div className="rounded-md border bg-background">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Quincena</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Cuota</TableHead>
-              <TableHead>Interés</TableHead>
-              <TableHead>Capital</TableHead>
-              <TableHead>Saldo Inicial</TableHead>
-              <TableHead>Saldo Final</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Pagado</TableHead>
-            </TableRow>
-          </TableHeader>
+        <div className="relative w-full">
+          <table className="w-full caption-bottom text-sm">
+            <TableHeader className="sticky top-0 z-10 bg-background shadow-sm">
+              <TableRow>
+                <TableHead className="bg-background">Quincena</TableHead>
+                <TableHead className="bg-background">Fecha</TableHead>
+                <TableHead className="bg-background">Cuota</TableHead>
+                <TableHead className="bg-background">Interés</TableHead>
+                <TableHead className="bg-background">Capital</TableHead>
+                <TableHead className="bg-background">Saldo Inicial</TableHead>
+                <TableHead className="bg-background">Saldo Final</TableHead>
+                <TableHead className="bg-background">Estado</TableHead>
+                <TableHead className="text-right bg-background">Pagado</TableHead>
+              </TableRow>
+            </TableHeader>
           <TableBody>
             {data.map((row, index) => {
               const effectiveEstado = getEffectiveEstado(row.estado, row.fechaQuincena);
@@ -112,7 +112,8 @@ export function AmortizationTable({ data, prestamoId }: AmortizationTableProps) 
               );
             })}
           </TableBody>
-        </Table>
+          </table>
+        </div>
       </div>
 
       <AlertDialog open={revertTarget !== null} onOpenChange={(open) => !open && setRevertTarget(null)}>
