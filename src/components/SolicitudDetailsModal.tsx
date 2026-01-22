@@ -91,7 +91,7 @@ export function SolicitudDetailsModal({ solicitud, triggerClassName }: Solicitud
               <div>
                 <Label>Inicio Contrato</Label>
                 <p className="text-sm">
-                  {solicitud.inicioContrato ? new Date(solicitud.inicioContrato).toLocaleDateString('es-PA') : 'N/A'}
+                  {solicitud.inicioContrato ? new Date(solicitud.inicioContrato + 'T00:00:00').toLocaleDateString('es-PA') : 'N/A'}
                 </p>
               </div>
             </div>

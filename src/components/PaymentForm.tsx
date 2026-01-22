@@ -187,7 +187,7 @@ export function PaymentForm() {
               </div>
               <div>
                 <span className="font-medium text-slate-600">Próximo Pago:</span>
-                <p className="font-semibold text-slate-800">{new Date(selectedLoan.proximoPago).toLocaleDateString('es-PA')}</p>
+                <p className="font-semibold text-slate-800">{new Date(selectedLoan.proximoPago + 'T00:00:00').toLocaleDateString('es-PA')}</p>
               </div>
             </div>
           </CardContent>
@@ -227,7 +227,7 @@ export function PaymentForm() {
                       <span className="text-xs text-red-600 font-bold">⚠️ ATRASADA</span>
                     )}
                     <span className="text-xs text-gray-500">
-                      ({new Date(q.fechaQuincena).toLocaleDateString('es-PA')})
+                      ({new Date(q.fechaQuincena + 'T00:00:00').toLocaleDateString('es-PA')})
                     </span>
                   </div>
                 </SelectItem>

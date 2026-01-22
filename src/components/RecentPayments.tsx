@@ -42,7 +42,7 @@ export async function RecentPayments() {
                     Pago #{payment.quincenaNum} • Préstamo #{payment.prestamoId}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {payment.fechaPago ? new Date(payment.fechaPago).toLocaleDateString('es-PA') : 'N/A'}
+                    {payment.fechaPago ? new Date(payment.fechaPago + 'T00:00:00').toLocaleDateString('es-PA') : 'N/A'}
                   </p>
                 </div>
                 <div className="text-right">

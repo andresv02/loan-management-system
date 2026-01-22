@@ -70,7 +70,7 @@ export default async function AggregateUpcomingQuincenas() {
               {aggregates.map(({ date, ...agg }) => (
                 <tr key={date} className="border-b last:border-b-0 hover:bg-gray-50">
                   <td className="py-2 font-medium">
-                    {new Date(date).toLocaleDateString('es-PA')}
+                    {new Date(date + 'T00:00:00').toLocaleDateString('es-PA')}
                   </td>
                   <td className="text-right font-bold py-2">
                     {new Intl.NumberFormat('es-PA', { style: 'currency', currency: 'PAB' }).format(agg.total)}

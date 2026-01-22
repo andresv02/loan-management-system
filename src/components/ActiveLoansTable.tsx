@@ -125,7 +125,7 @@ export function ActiveLoansTable({ data }: ActiveLoansTableProps) {
       accessorKey: 'proximoPago',
       header: 'Próximo Pago',
       cell: ({ row }) => {
-        const date = new Date(row.getValue('proximoPago'));
+        const date = new Date((row.getValue('proximoPago') as string) + 'T00:00:00');
         return date.toLocaleDateString('es-PA');
       },
     },

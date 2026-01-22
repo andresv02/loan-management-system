@@ -125,7 +125,7 @@ export default async function UpcomingPayments() {
                     )}
                   </div>
                   <p className={`text-xs ${payment.isOverdue ? 'text-red-700' : 'text-slate-600'}`}>
-                    {new Date(payment.dueDate).toLocaleDateString('es-PA')}
+                    {new Date(payment.dueDate + 'T00:00:00').toLocaleDateString('es-PA')}
                   </p>
                 </div>
                 <div className="text-right ml-2">

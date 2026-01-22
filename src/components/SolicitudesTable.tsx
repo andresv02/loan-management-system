@@ -126,7 +126,7 @@ export default function SolicitudesTable({ data, companies }: SolicitudesTablePr
       accessorKey: 'inicioContrato',
       header: 'Inicio Contrato',
       cell: ({ row }) => {
-        const date = new Date(row.getValue('inicioContrato'));
+        const date = new Date((row.getValue('inicioContrato') as string) + 'T00:00:00');
         return date.toLocaleDateString('es-PA');
       },
     },
