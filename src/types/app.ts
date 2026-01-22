@@ -12,6 +12,15 @@ export interface PrestamoWithDetails {
   cedula: string;
   nombre: string;
   amortizacion: AmortRow[];
+  personInfo?: {
+    email: string | null;
+    telefono: string | null;
+    direccion: string | null;
+    tipoCuentaBancaria: string | null;
+    numeroCuenta: string | null;
+    banco: string | null;
+    salarioMensual: string | null;
+  };
 }
 
 export interface Company {

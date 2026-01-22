@@ -53,20 +53,15 @@ export function DashboardActiveLoans({ data, companies }: Props) {
           return false;
         }
       }
-      if (filters.estado) {
-        const effectiveEstado = getEffectivePrestamoEstado(item.estado, item.amortizacion);
-        
-        if (filters.estado !== 'activa') {
-          return effectiveEstado === filters.estado;
-        }
-        
-        // For activa, apply subfilter
-        if (filters.subEstado === 'atrasada') {
-          return effectiveEstado === 'atrasada';
-        }
-        
+      // Always filter to active loans only
+      const effectiveEstado = getEffectivePrestamoEstado(item.estado, item.amortizacion);
+      
+      // Apply subfilter
+      if (filters.subEstado === 'atrasada') {
+        if (effectiveEstado !== 'atrasada') return false;
+      } else {
         // 'todos' shows all activa (including atrasada)
-        return effectiveEstado === 'activa' || effectiveEstado === 'atrasada';
+        if (effectiveEstado !== 'activa' && effectiveEstado !== 'atrasada') return false;
       }
       if (filters.dateFrom) {
         const itemDate = new Date(item.proximoPago);

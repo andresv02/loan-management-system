@@ -43,67 +43,69 @@ import { LOAN_STATUS } from '@/lib/constants';
 import { useLoanExport } from '@/hooks/use-loan-export';
 import { PrestamosExportDialog } from './PrestamosExportDialog';
 import { PrestamosMobileCard } from './PrestamosMobileCard';
+import { PersonInfoModal } from './PersonInfoModal';
 import { PrestamoWithDetails, Company } from '@/types/app';
 
 interface PrestamosTableProps {
   data: PrestamoWithDetails[];
+  companies?: Company[];
 }
 
-export default function PrestamosTable({ data }: PrestamosTableProps) {
+export default function PrestamosTable({ data, companies = [] }: PrestamosTableProps) {
   const [expanded, setExpanded] = useState({});
 
   const [estadoFilter, setEstadoFilter] = useState<string>(LOAN_STATUS.ACTIVE);
   const [subEstadoFilter, setSubEstadoFilter] = useState<'todos' | 'atrasada'>('todos');
+  const [companiaFilter, setCompaniaFilter] = useState<string>('todos');
+  const [sortBy, setSortBy] = useState<'id' | 'nombre' | 'saldo'>('id');
 
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [loadingCompanies, setLoadingCompanies] = useState(true);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
   const { toast } = useToast();
   const { exportLoans } = useLoanExport();
 
-  const fetchCompanies = async () => {
-    try {
-      setLoadingCompanies(true);
-      const res = await fetch('/api/companies');
-      if (!res.ok) {
-        throw new Error('Failed to fetch companies');
-      }
-      const data: Company[] = await res.json();
-      setCompanies(data);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar las empresas para exportar.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingCompanies(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCompanies();
-  }, []);
-
   const filteredData = useMemo(() => {
-    return data.filter((item) => {
+    let filtered = data.filter((item) => {
       const effectiveEstado = getEffectivePrestamoEstado(item.estado, item.amortizacion);
       
-      if (estadoFilter !== LOAN_STATUS.ACTIVE) {
-        return effectiveEstado === estadoFilter;
+      // Estado filter
+      if (estadoFilter !== 'todos') {
+        if (estadoFilter !== LOAN_STATUS.ACTIVE) {
+          if (effectiveEstado !== estadoFilter) return false;
+        } else {
+          // For activa, apply subfilter
+          if (subEstadoFilter === LOAN_STATUS.LATE) {
+            if (effectiveEstado !== LOAN_STATUS.LATE) return false;
+          } else {
+            // 'todos' shows all activa (including atrasada)
+            if (effectiveEstado !== LOAN_STATUS.ACTIVE && effectiveEstado !== LOAN_STATUS.LATE) return false;
+          }
+        }
       }
       
-      // For activa, apply subfilter
-      if (subEstadoFilter === LOAN_STATUS.LATE) {
-        return effectiveEstado === LOAN_STATUS.LATE;
+      // Company filter
+      if (companiaFilter !== 'todos' && item.empresa !== companiaFilter) {
+        return false;
       }
       
-      // 'todos' shows all activa (including atrasada)
-      return effectiveEstado === LOAN_STATUS.ACTIVE || effectiveEstado === LOAN_STATUS.LATE;
+      return true;
     });
-  }, [data, estadoFilter, subEstadoFilter]);
+    
+    // Apply sorting
+    filtered = [...filtered].sort((a, b) => {
+      if (sortBy === 'id') {
+        return a.id - b.id;
+      } else if (sortBy === 'nombre') {
+        return a.nombre.localeCompare(b.nombre);
+      } else if (sortBy === 'saldo') {
+        return parseFloat(b.saldoPendiente) - parseFloat(a.saldoPendiente);
+      }
+      return 0;
+    });
+    
+    return filtered;
+  }, [data, estadoFilter, subEstadoFilter, companiaFilter, sortBy]);
 
   const handleExport = () => {
     exportLoans(data, selectedCompany, () => {
@@ -213,29 +215,31 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
       cell: ({ row }) => {
         const prestamo = row.original;
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => toast({
-                title: "Función en desarrollo",
-                description: `Ver detalles del préstamo ${prestamo.id}`
-              })}>
-                Ver
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => deletePrestamo(prestamo.id)}
-                className="text-red-600"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Eliminar
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <PersonInfoModal 
+              nombre={prestamo.nombre}
+              cedula={prestamo.cedula}
+              empresa={prestamo.empresa}
+              personInfo={prestamo.personInfo}
+            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => deletePrestamo(prestamo.id)}
+                  className="text-red-600"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Eliminar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         );
       },
     },
@@ -255,12 +259,12 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
 
   return (
     <div className="w-full">
-      <div className="mb-6 p-4 bg-muted/50 rounded-lg border">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1">
-            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Filtrar por estado:</span>
-            
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+      <div className="mb-6 p-4 bg-muted/50 rounded-lg border space-y-4">
+        {/* First Row: Status and Company Filters */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Filtros:</span>
+          
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-1">
             <Select value={estadoFilter} onValueChange={setEstadoFilter}>
               <SelectTrigger className="w-full sm:w-[140px]">
                 <SelectValue placeholder="Estado" />
@@ -284,23 +288,54 @@ export default function PrestamosTable({ data }: PrestamosTableProps) {
                 </SelectContent>
               </Select>
             )}
+            
+            <Select value={companiaFilter} onValueChange={setCompaniaFilter}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas las Empresas</SelectItem>
+                {companies.map((company) => (
+                  <SelectItem key={company.id} value={company.name}>
+                    {company.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        <Button
-          onClick={() => setExportDialogOpen(true)}
-          disabled={loadingCompanies || companies.length === 0}
-          className="whitespace-nowrap"
-        >
-          Exportar
-        </Button>
-      </div>
+        
+        {/* Second Row: Sorting and Export */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Ordenar por:</span>
+            <Select value={sortBy} onValueChange={(value: 'id' | 'nombre' | 'saldo') => setSortBy(value)}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="id">ID (Default)</SelectItem>
+                <SelectItem value="nombre">Nombre</SelectItem>
+                <SelectItem value="saldo">Saldo Pendiente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <Button
+            onClick={() => setExportDialogOpen(true)}
+            disabled={companies.length === 0}
+            className="whitespace-nowrap"
+          >
+            Exportar
+          </Button>
+        </div>
       </div>
 
       <PrestamosExportDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
         companies={companies}
-        loadingCompanies={loadingCompanies}
+        loadingCompanies={false}
         selectedCompany={selectedCompany}
         onSelectCompany={setSelectedCompany}
         onExport={handleExport}

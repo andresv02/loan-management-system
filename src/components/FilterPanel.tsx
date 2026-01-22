@@ -80,48 +80,21 @@ export function FilterPanel({ companies, onFilterChange }: FilterPanelProps) {
           </SelectContent>
         </Select>
       </div>
-      <div className="flex gap-2 items-end">
-        <div className="min-w-[100px]">
-          <label className="text-xs font-medium uppercase text-muted-foreground">Estado</label>
-          <Select value={filters.estado ?? ''} onValueChange={(value) => {
-            const newFilters = {
-              ...filters,
-              estado: value || undefined,
-              subEstado: value === 'activa' ? (filters.subEstado as any || 'todos') : undefined
-            };
-            setFilters(newFilters);
-            onFilterChange?.(newFilters);
-          }}>
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="activa">Activa</SelectItem>
-              <SelectItem value="completada">Completada</SelectItem>
-              <SelectItem value="rechazada">Rechazada</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {filters.estado === 'activa' && (
-          <div>
-            <label className="text-xs font-medium uppercase text-muted-foreground">Sub-Estado</label>
-            <Select value={filters.subEstado ?? 'todos'} onValueChange={(value) => {
-              const newFilters = { ...filters, subEstado: value as 'todos' | 'atrasada' };
-              setFilters(newFilters);
-              onFilterChange?.(newFilters);
-            }}>
-              <SelectTrigger className="mt-1 w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos Activos</SelectItem>
-                <SelectItem value="atrasada">Solo Atrasadas</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+      <div>
+        <label className="text-xs font-medium uppercase text-muted-foreground">Sub-Estado</label>
+        <Select value={filters.subEstado ?? 'todos'} onValueChange={(value) => {
+          const newFilters = { ...filters, subEstado: value as 'todos' | 'atrasada', estado: 'activa' };
+          setFilters(newFilters);
+          onFilterChange?.(newFilters);
+        }}>
+          <SelectTrigger className="mt-1 w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos Activos</SelectItem>
+            <SelectItem value="atrasada">Solo Atrasadas</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex gap-2 items-end">
         <div className="min-w-[120px]">

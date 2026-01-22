@@ -65,6 +65,15 @@ export default async function PrestamosPage() {
         cedula: p.solicitud.person.cedula,
         nombre: `${p.solicitud.person.nombre} ${p.solicitud.person.apellido}`,
         amortizacion: amortizacionData,
+        personInfo: {
+          email: p.solicitud.person.email,
+          telefono: p.solicitud.person.telefono,
+          direccion: p.solicitud.person.direccion,
+          tipoCuentaBancaria: p.solicitud.tipoCuentaBancaria,
+          numeroCuenta: p.solicitud.numeroCuenta,
+          banco: p.solicitud.banco,
+          salarioMensual: p.solicitud.person.salarioMensual,
+        },
       };
     })
   );
@@ -82,7 +91,7 @@ export default async function PrestamosPage() {
             <h2 className="text-xl font-bold text-gray-800">Listado de Préstamos</h2>
             <CreateLoanDialog companies={companiesData} />
           </div>
-          <PrestamosTable data={data} />
+          <PrestamosTable data={data} companies={companiesData} />
         </div>
       </div>
     </div>
