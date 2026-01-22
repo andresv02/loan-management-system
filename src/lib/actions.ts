@@ -131,6 +131,67 @@ export async function recordPayment(prestamoId: number, quincenaNum: number, amo
   revalidatePath('/payments');
 }
 
+export async function revertPayment(prestamoId: number, quincenaNum: number) {
+  // 1. Get the amortization row to know the capital amount
+  const amortRow = await db.query.amortizacion.findFirst({
+    where: and(
+      eq(amortizacion.prestamoId, prestamoId),
+      eq(amortizacion.quincenaNum, quincenaNum)
+    ),
+  });
+
+  if (!amortRow) throw new Error('Amortization row not found');
+
+  // 2. Delete the payment record
+  await db.delete(pagos).where(and(
+    eq(pagos.prestamoId, prestamoId),
+    eq(pagos.quincenaNum, quincenaNum)
+  ));
+
+  // 3. Update amortization status back to 'pendiente'
+  await db.update(amortizacion)
+    .set({ estado: 'pendiente' })
+    .where(and(
+      eq(amortizacion.prestamoId, prestamoId),
+      eq(amortizacion.quincenaNum, quincenaNum)
+    ));
+
+  // 4. Update prestamo balance and status
+  const prestamo = await db.query.prestamos.findFirst({
+    where: eq(prestamos.id, prestamoId),
+  });
+
+  if (prestamo) {
+    const capitalReverted = parseFloat(amortRow.capital);
+    const currentSaldo = parseFloat(prestamo.saldoPendiente);
+    const newSaldo = currentSaldo + capitalReverted;
+
+    // Find the earliest unpaid installment (which is now this one or an earlier one)
+    const unpaidRows = await db
+      .select()
+      .from(amortizacion)
+      .where(and(
+        eq(amortizacion.prestamoId, prestamoId),
+        eq(amortizacion.estado, 'pendiente')
+      ))
+      .orderBy(asc(amortizacion.quincenaNum));
+    
+    const nextProximoPago = unpaidRows[0]?.fechaQuincena || prestamo.proximoPago;
+
+    await db.update(prestamos)
+      .set({
+        saldoPendiente: newSaldo.toFixed(2),
+        proximoPago: nextProximoPago,
+        estado: 'activa', // Always revert to active if we are undoing a payment
+      })
+      .where(eq(prestamos.id, prestamoId));
+  }
+
+  revalidatePath('/dashboard');
+  revalidatePath('/prestamos');
+  revalidatePath('/payments');
+}
+
 export async function declineSolicitud(solicitudId: number) {
   // Update solicitud estado to rechazada
   await db.update(solicitudes).set({ estado: 'rechazada' }).where(eq(solicitudes.id, solicitudId));
