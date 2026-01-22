@@ -1,33 +1,21 @@
 import { useToast } from '@/hooks/use-toast';
-import { getEffectivePrestamoEstado } from '@/lib/utils';
 import { PrestamoWithDetails, Company } from '@/types/app';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export function useLoanExport() {
   const { toast } = useToast();
 
-  const exportLoans = (
-    data: PrestamoWithDetails[],
-    selectedCompany: Company | null,
-    onSuccess?: () => void
-  ) => {
-    if (!selectedCompany || !data.length) {
-      return;
-    }
-
+  const prepareData = (data: PrestamoWithDetails[], selectedCompany: Company) => {
     const companyLoans = data.filter((prestamo) => 
       prestamo.empresa === selectedCompany.name && 
       (prestamo.estado === 'activa' || prestamo.estado === 'atrasada')
     );
 
     if (companyLoans.length === 0) {
-      toast({
-        title: "Sin datos",
-        description: `No hay préstamos para la empresa "${selectedCompany.name}".`,
-      });
-      return;
+      return null;
     }
 
-    // Headers
     const headers = [
       "ID",
       "Cedula",
@@ -39,9 +27,7 @@ export function useLoanExport() {
       "Saldo Pendiente",
     ];
 
-    // Rows
     const rows = companyLoans.map((prestamo) => {
-      // Sort amortizacion by quincenaNum to ensure correct order
       const sortedAmort = [...prestamo.amortizacion].sort((a, b) => a.quincenaNum - b.quincenaNum);
       
       const fechaInicio = sortedAmort.length > 0 ? sortedAmort[0].fechaQuincena : "";
@@ -50,7 +36,6 @@ export function useLoanExport() {
       const principalTotal = parseFloat(prestamo.principal);
       const interesTotal = parseFloat(prestamo.interesTotal);
       
-      // Sum of all Cuotas he has paid
       const paidCuotasSum = sortedAmort
         .filter(row => row.estado === 'pagada')
         .reduce((sum, row) => sum + parseFloat(row.cuotaQuincenal), 0);
@@ -77,6 +62,27 @@ export function useLoanExport() {
         }),
       ];
     });
+
+    return { companyLoans, headers, rows };
+  };
+
+  const exportLoans = (
+    data: PrestamoWithDetails[],
+    selectedCompany: Company | null,
+    onSuccess?: () => void
+  ) => {
+    if (!selectedCompany || !data.length) return;
+
+    const prepared = prepareData(data, selectedCompany);
+    if (!prepared) {
+      toast({
+        title: "Sin datos",
+        description: `No hay préstamos activos para la empresa "${selectedCompany.name}".`,
+      });
+      return;
+    }
+
+    const { companyLoans, headers, rows } = prepared;
 
     // Center the title by adding empty columns before it (approximate centering for 8 columns)
     const emptyCols = ",,,"; 
@@ -107,10 +113,55 @@ export function useLoanExport() {
       duration: 5000,
     });
 
-    if (onSuccess) {
-      onSuccess();
-    }
+    if (onSuccess) onSuccess();
   };
 
-  return { exportLoans };
+  const exportLoansPDF = (
+    data: PrestamoWithDetails[],
+    selectedCompany: Company | null,
+    onSuccess?: () => void
+  ) => {
+    if (!selectedCompany || !data.length) return;
+
+    const prepared = prepareData(data, selectedCompany);
+    if (!prepared) {
+      toast({
+        title: "Sin datos",
+        description: `No hay préstamos activos para la empresa "${selectedCompany.name}".`,
+      });
+      return;
+    }
+
+    const { companyLoans, headers, rows } = prepared;
+    const doc = new jsPDF();
+
+    // Add Title
+    doc.setFontSize(16);
+    doc.text("Resumen Prestamos", 105, 15, { align: "center" });
+    doc.setFontSize(12);
+    doc.text(`${selectedCompany.name} - ${new Date().toLocaleDateString("es-PA")}`, 105, 22, { align: "center" });
+
+    // Add Table
+    autoTable(doc, {
+      head: [headers],
+      body: rows,
+      startY: 30,
+      theme: 'grid',
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [66, 66, 66] },
+    });
+
+    const dateStr = new Date().toLocaleDateString("es-PA").replace(/\//g, "-");
+    doc.save(`${selectedCompany.name} Prestamos ${dateStr}.pdf`);
+
+    toast({
+      title: "¡Exportado!",
+      description: `Reporte PDF de ${companyLoans.length} préstamos de ${selectedCompany.name} descargado.`,
+      duration: 5000,
+    });
+
+    if (onSuccess) onSuccess();
+  };
+
+  return { exportLoans, exportLoansPDF };
 }

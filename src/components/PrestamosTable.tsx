@@ -63,7 +63,7 @@ export default function PrestamosTable({ data, companies = [] }: PrestamosTableP
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
   const { toast } = useToast();
-  const { exportLoans } = useLoanExport();
+  const { exportLoans, exportLoansPDF } = useLoanExport();
 
   const filteredData = useMemo(() => {
     let filtered = data.filter((item) => {
@@ -109,6 +109,13 @@ export default function PrestamosTable({ data, companies = [] }: PrestamosTableP
 
   const handleExport = () => {
     exportLoans(data, selectedCompany, () => {
+      setExportDialogOpen(false);
+      setSelectedCompany(null);
+    });
+  };
+
+  const handleExportPDF = () => {
+    exportLoansPDF(data, selectedCompany, () => {
       setExportDialogOpen(false);
       setSelectedCompany(null);
     });
@@ -339,6 +346,7 @@ export default function PrestamosTable({ data, companies = [] }: PrestamosTableP
         selectedCompany={selectedCompany}
         onSelectCompany={setSelectedCompany}
         onExport={handleExport}
+        onExportPDF={handleExportPDF}
       />
 
       {/* Desktop View */}

@@ -24,6 +24,7 @@ interface PrestamosExportDialogProps {
   selectedCompany: Company | null;
   onSelectCompany: (company: Company | null) => void;
   onExport: () => void;
+  onExportPDF: () => void;
 }
 
 export function PrestamosExportDialog({
@@ -34,6 +35,7 @@ export function PrestamosExportDialog({
   selectedCompany,
   onSelectCompany,
   onExport,
+  onExportPDF,
 }: PrestamosExportDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -41,7 +43,7 @@ export function PrestamosExportDialog({
         <DialogHeader>
           <DialogTitle>Exportar Préstamos</DialogTitle>
           <DialogDescription>
-            Selecciona una empresa para exportar todos sus préstamos en formato CSV.
+            Selecciona una empresa para exportar todos sus préstamos activos.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -64,16 +66,25 @@ export function PrestamosExportDialog({
             </SelectContent>
           </Select>
         </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="sm:justify-between">
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button
-            onClick={onExport}
-            disabled={!selectedCompany || loadingCompanies}
-          >
-            Exportar CSV
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={onExportPDF}
+              disabled={!selectedCompany || loadingCompanies}
+              variant="outline"
+            >
+              PDF
+            </Button>
+            <Button
+              onClick={onExport}
+              disabled={!selectedCompany || loadingCompanies}
+            >
+              CSV
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
