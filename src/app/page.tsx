@@ -87,7 +87,7 @@ export default async function Page() {
         </div>
 
         {/* Active Loans Section */}
-        <div className="space-y-6">
+        <div className="space-y-6" id="active-loans">
           <div className="flex items-center justify-center">
             <div className="flex items-center space-x-3">
               <h2 className="text-2xl font-bold text-slate-900">Préstamos Activos</h2>

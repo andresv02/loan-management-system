@@ -63,7 +63,9 @@ export function useLoanExport() {
       ];
     });
 
-    return { companyLoans, headers, rows };
+    const totalCuota = companyLoans.reduce((sum, loan) => sum + parseFloat(loan.cuotaQuincenal), 0);
+
+    return { companyLoans, headers, rows, totalCuota };
   };
 
   const exportLoans = (
@@ -82,18 +84,25 @@ export function useLoanExport() {
       return;
     }
 
-    const { companyLoans, headers, rows } = prepared;
+    const { companyLoans, headers, rows, totalCuota } = prepared;
 
     // Center the title by adding empty columns before it (approximate centering for 8 columns)
     const emptyCols = ",,,"; 
     const title1 = `${emptyCols}"Resumen Prestamos"`;
     const title2 = `${emptyCols}"${selectedCompany.name} - ${new Date().toLocaleDateString("es-PA")}"`;
 
+    const totalRow = [
+      "", "", "", "Total",
+      totalCuota.toLocaleString("es-PA", { style: "currency", currency: "PAB" }),
+      "", "", ""
+    ];
+
     const csvContent = [
       title1,
       title2,
       headers.join(","),
       ...rows.map((row) => row.map((field) => `"${field}"`).join(",")),
+      totalRow.map((field) => `"${field}"`).join(",")
     ].join("\n");
 
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
@@ -132,7 +141,7 @@ export function useLoanExport() {
       return;
     }
 
-    const { companyLoans, headers, rows } = prepared;
+    const { companyLoans, headers, rows, totalCuota } = prepared;
     const doc = new jsPDF();
 
     // Add Title
@@ -145,10 +154,16 @@ export function useLoanExport() {
     autoTable(doc, {
       head: [headers],
       body: rows,
+      foot: [[
+        "", "", "", "Total",
+        totalCuota.toLocaleString("es-PA", { style: "currency", currency: "PAB" }),
+        "", "", ""
+      ]],
       startY: 30,
       theme: 'grid',
       styles: { fontSize: 8 },
       headStyles: { fillColor: [66, 66, 66] },
+      footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
     });
 
     const dateStr = new Date().toLocaleDateString("es-PA").replace(/\//g, "-");
