@@ -52,10 +52,17 @@ export function ApprovalModal({ solicitudId, montoSolicitado, duracionMeses, ced
   const [proximoPagoDate, setProximoPagoDate] = useState<Date | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [selectedDuracionMeses, setSelectedDuracionMeses] = useState<string>(duracionMeses.toString());
   const { toast } = useToast();
 
-  const totalQuincenas = duracionMeses * 2;
+  const totalQuincenas = parseInt(selectedDuracionMeses) * 2;
   const sugerenciaInteres = (montoSolicitado * 0.12).toFixed(2);
+
+  // Duration options: 1-12 months
+  const durationOptions = Array.from({ length: 12 }, (_, i) => ({
+    value: (i + 1).toString(),
+    label: `${i + 1} ${i + 1 === 1 ? 'mes' : 'meses'} (${(i + 1) * 2} quincenas)`
+  }));
 
   useEffect(() => {
     if (interesDeseado) {
@@ -122,6 +129,7 @@ export function ApprovalModal({ solicitudId, montoSolicitado, duracionMeses, ced
       formData.append('interesDeseado', interesDeseado);
       formData.append('proximoPago', format(proximoPagoDate!, 'yyyy-MM-dd'));
       formData.append('companyId', selectedCompanyId);
+      formData.append('duracionMeses', selectedDuracionMeses);
 
       await approveSolicitud(formData);
 
@@ -170,8 +178,22 @@ export function ApprovalModal({ solicitudId, montoSolicitado, duracionMeses, ced
               </p>
             </div>
             <div>
-              <Label>Duración</Label>
-              <p className="text-sm font-medium">{duracionMeses} meses ({totalQuincenas} quincenas)</p>
+              <Label htmlFor="duracionMeses">Duración</Label>
+              <Select value={selectedDuracionMeses} onValueChange={setSelectedDuracionMeses}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar duración" />
+                </SelectTrigger>
+                <SelectContent>
+                  {durationOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Sugerido por el cliente: {duracionMeses} meses
+              </p>
             </div>
             <div>
               <Label>Cédula</Label>

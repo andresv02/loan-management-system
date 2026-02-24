@@ -116,13 +116,11 @@ web_modules/
 ehthumbs.db
 Thumbs.db
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
 # Drizzle
 drizzle/
+
+# Database (local development)
+database/
 
 # Plans directory (if it contains sensitive or generated content)
 plans/

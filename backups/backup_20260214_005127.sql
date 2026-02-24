@@ -1,0 +1,1227 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict WpTYA93uPyVgU2x4LnPWbIFP8PAlNhCChCuAU7jckN6cgqG2yh5GGpfeRSyyYiF
+
+-- Dumped from database version 17.7 (Debian 17.7-3.pgdg13+1)
+-- Dumped by pg_dump version 18.1 (Postgres.app)
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: drizzle; Type: SCHEMA; Schema: -; Owner: postgres
+--
+
+CREATE SCHEMA drizzle;
+
+
+ALTER SCHEMA drizzle OWNER TO postgres;
+
+--
+-- Name: estado_amortizacion; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.estado_amortizacion AS ENUM (
+    'pendiente',
+    'pagada',
+    'atrasada'
+);
+
+
+ALTER TYPE public.estado_amortizacion OWNER TO postgres;
+
+--
+-- Name: estado_prestamo; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.estado_prestamo AS ENUM (
+    'activa',
+    'completada',
+    'atrasada',
+    'rechazada'
+);
+
+
+ALTER TYPE public.estado_prestamo OWNER TO postgres;
+
+--
+-- Name: estado_solicitud; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.estado_solicitud AS ENUM (
+    'nueva',
+    'aprobada',
+    'rechazada'
+);
+
+
+ALTER TYPE public.estado_solicitud OWNER TO postgres;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: __drizzle_migrations; Type: TABLE; Schema: drizzle; Owner: postgres
+--
+
+CREATE TABLE drizzle.__drizzle_migrations (
+    id integer NOT NULL,
+    hash text NOT NULL,
+    created_at bigint
+);
+
+
+ALTER TABLE drizzle.__drizzle_migrations OWNER TO postgres;
+
+--
+-- Name: __drizzle_migrations_id_seq; Type: SEQUENCE; Schema: drizzle; Owner: postgres
+--
+
+CREATE SEQUENCE drizzle.__drizzle_migrations_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE drizzle.__drizzle_migrations_id_seq OWNER TO postgres;
+
+--
+-- Name: __drizzle_migrations_id_seq; Type: SEQUENCE OWNED BY; Schema: drizzle; Owner: postgres
+--
+
+ALTER SEQUENCE drizzle.__drizzle_migrations_id_seq OWNED BY drizzle.__drizzle_migrations.id;
+
+
+--
+-- Name: amortizacion; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.amortizacion (
+    id integer NOT NULL,
+    prestamo_id integer NOT NULL,
+    quincena_num integer NOT NULL,
+    fecha_quincena date NOT NULL,
+    cuota_quincenal numeric(12,2) NOT NULL,
+    interes numeric(12,2) NOT NULL,
+    capital numeric(12,2) NOT NULL,
+    saldo_inicial numeric(12,2) NOT NULL,
+    saldo_final numeric(12,2) NOT NULL,
+    estado public.estado_amortizacion DEFAULT 'pendiente'::public.estado_amortizacion NOT NULL
+);
+
+
+ALTER TABLE public.amortizacion OWNER TO postgres;
+
+--
+-- Name: amortizacion_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.amortizacion_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.amortizacion_id_seq OWNER TO postgres;
+
+--
+-- Name: amortizacion_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.amortizacion_id_seq OWNED BY public.amortizacion.id;
+
+
+--
+-- Name: companies; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.companies (
+    id integer NOT NULL,
+    name character varying(200) NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.companies OWNER TO postgres;
+
+--
+-- Name: companies_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.companies_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.companies_id_seq OWNER TO postgres;
+
+--
+-- Name: companies_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.companies_id_seq OWNED BY public.companies.id;
+
+
+--
+-- Name: pagos; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.pagos (
+    id integer NOT NULL,
+    prestamo_id integer NOT NULL,
+    quincena_num integer,
+    fecha_pago date,
+    monto_pagado numeric(12,2) NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.pagos OWNER TO postgres;
+
+--
+-- Name: pagos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.pagos_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.pagos_id_seq OWNER TO postgres;
+
+--
+-- Name: pagos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.pagos_id_seq OWNED BY public.pagos.id;
+
+
+--
+-- Name: persons; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.persons (
+    id integer NOT NULL,
+    cedula character varying(20) NOT NULL,
+    nombre character varying(100) NOT NULL,
+    apellido character varying(100) NOT NULL,
+    email character varying(100),
+    telefono character varying(20),
+    direccion text,
+    company_id integer,
+    salario_mensual numeric(10,2),
+    meses_en_empresa integer,
+    inicio_contrato date,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.persons OWNER TO postgres;
+
+--
+-- Name: persons_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.persons_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.persons_id_seq OWNER TO postgres;
+
+--
+-- Name: persons_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.persons_id_seq OWNED BY public.persons.id;
+
+
+--
+-- Name: prestamos; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.prestamos (
+    id integer NOT NULL,
+    solicitud_id integer NOT NULL,
+    principal numeric(12,2) NOT NULL,
+    interes_total numeric(12,2) NOT NULL,
+    cuota_quincenal numeric(12,2) NOT NULL,
+    total_quincenas integer NOT NULL,
+    proximo_pago date NOT NULL,
+    saldo_pendiente numeric(12,2) NOT NULL,
+    estado public.estado_prestamo DEFAULT 'activa'::public.estado_prestamo NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.prestamos OWNER TO postgres;
+
+--
+-- Name: prestamos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.prestamos_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.prestamos_id_seq OWNER TO postgres;
+
+--
+-- Name: prestamos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.prestamos_id_seq OWNED BY public.prestamos.id;
+
+
+--
+-- Name: solicitudes; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.solicitudes (
+    id integer NOT NULL,
+    person_id integer NOT NULL,
+    foto_cedula text[],
+    monto_solicitado numeric(12,2) NOT NULL,
+    duracion_meses integer NOT NULL,
+    tipo_cuenta_bancaria character varying(50),
+    numero_cuenta character varying(50),
+    banco character varying(100),
+    estado public.estado_solicitud DEFAULT 'nueva'::public.estado_solicitud NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    empresa character varying(200)
+);
+
+
+ALTER TABLE public.solicitudes OWNER TO postgres;
+
+--
+-- Name: solicitudes_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.solicitudes_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.solicitudes_id_seq OWNER TO postgres;
+
+--
+-- Name: solicitudes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.solicitudes_id_seq OWNED BY public.solicitudes.id;
+
+
+--
+-- Name: __drizzle_migrations id; Type: DEFAULT; Schema: drizzle; Owner: postgres
+--
+
+ALTER TABLE ONLY drizzle.__drizzle_migrations ALTER COLUMN id SET DEFAULT nextval('drizzle.__drizzle_migrations_id_seq'::regclass);
+
+
+--
+-- Name: amortizacion id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.amortizacion ALTER COLUMN id SET DEFAULT nextval('public.amortizacion_id_seq'::regclass);
+
+
+--
+-- Name: companies id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.companies ALTER COLUMN id SET DEFAULT nextval('public.companies_id_seq'::regclass);
+
+
+--
+-- Name: pagos id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.pagos ALTER COLUMN id SET DEFAULT nextval('public.pagos_id_seq'::regclass);
+
+
+--
+-- Name: persons id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.persons ALTER COLUMN id SET DEFAULT nextval('public.persons_id_seq'::regclass);
+
+
+--
+-- Name: prestamos id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.prestamos ALTER COLUMN id SET DEFAULT nextval('public.prestamos_id_seq'::regclass);
+
+
+--
+-- Name: solicitudes id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.solicitudes ALTER COLUMN id SET DEFAULT nextval('public.solicitudes_id_seq'::regclass);
+
+
+--
+-- Data for Name: __drizzle_migrations; Type: TABLE DATA; Schema: drizzle; Owner: postgres
+--
+
+COPY drizzle.__drizzle_migrations (id, hash, created_at) FROM stdin;
+1	3c9ba70de54bd5641e2ff79c147abd36a14f6fbfc3ffb068e58a8953f64a9e42	1768568268118
+2	d24c2265f00f35807be597e011f5ce12c695ce1ccb477aa126596a4601781102	1768570138090
+3	f5ecfcbdaea67a625f73d8495e75370bb3b1ae7718ac202f94e8558c351f8e29	1768573510444
+4	49455e93c739c1f594a22824b094ce1dd3956d01b8df31292f67d3b5403c9d40	1768942016036
+\.
+
+
+--
+-- Data for Name: amortizacion; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.amortizacion (id, prestamo_id, quincena_num, fecha_quincena, cuota_quincenal, interes, capital, saldo_inicial, saldo_final, estado) FROM stdin;
+112	18	6	2026-02-15	65.63	16.33	49.30	163.15	113.85	pendiente
+113	18	7	2026-02-28	65.63	11.39	54.24	113.85	59.61	pendiente
+114	18	8	2026-03-15	65.63	6.02	59.61	59.61	0.00	pendiente
+107	18	1	2025-11-30	65.63	35.03	30.60	350.00	319.40	pagada
+108	18	2	2025-12-15	65.63	31.97	33.66	319.40	285.74	pagada
+109	18	3	2025-12-31	65.63	28.60	37.03	285.74	248.71	pagada
+110	18	4	2026-01-15	65.63	24.89	40.74	248.71	207.97	pagada
+121	19	7	2026-02-15	60.00	17.97	42.03	294.02	251.99	pendiente
+122	19	8	2026-02-28	60.00	15.40	44.60	251.99	207.39	pendiente
+123	19	9	2026-03-15	60.00	12.67	47.33	207.39	160.06	pendiente
+124	19	10	2026-03-31	60.00	9.78	50.22	160.06	109.84	pendiente
+125	19	11	2026-04-15	60.00	6.71	53.29	109.84	56.55	pendiente
+126	19	12	2026-04-30	60.00	3.45	56.55	56.55	0.00	pendiente
+115	19	1	2025-11-15	60.00	30.55	29.45	500.00	470.55	pagada
+116	19	2	2025-11-30	60.00	28.75	31.25	470.55	439.30	pagada
+117	19	3	2025-12-15	60.00	26.84	33.16	439.30	406.14	pagada
+118	19	4	2025-12-31	60.00	24.82	35.18	406.14	370.96	pagada
+119	19	5	2026-01-15	60.00	22.67	37.33	370.96	333.63	pagada
+133	20	7	2026-02-15	62.50	20.54	41.96	299.16	257.20	pendiente
+134	20	8	2026-02-28	62.50	17.66	44.84	257.20	212.36	pendiente
+135	20	9	2026-03-15	62.50	14.58	47.92	212.36	164.44	pendiente
+136	20	10	2026-03-31	62.50	11.29	51.21	164.44	113.23	pendiente
+137	20	11	2026-04-15	62.50	7.77	54.73	113.23	58.50	pendiente
+138	20	12	2026-04-30	62.50	4.00	58.50	58.50	0.00	pendiente
+127	20	1	2025-11-15	62.50	34.33	28.17	500.00	471.83	pagada
+128	20	2	2025-11-30	62.50	32.39	30.11	471.83	441.72	pagada
+129	20	3	2025-12-15	62.50	30.33	32.17	441.72	409.55	pagada
+130	20	4	2025-12-31	62.50	28.12	34.38	409.55	375.17	pagada
+131	20	5	2026-01-15	62.50	25.76	36.74	375.17	338.43	pagada
+120	19	6	2026-01-31	60.00	20.39	39.61	333.63	294.02	pagada
+132	20	6	2026-01-31	62.50	23.23	39.27	338.43	299.16	pagada
+154	22	4	2026-01-31	60.00	24.82	35.18	406.14	370.96	pagada
+180	24	6	2026-01-31	60.00	20.39	39.61	333.63	294.02	pagada
+155	22	5	2026-02-15	60.00	22.67	37.33	370.96	333.63	pendiente
+156	22	6	2026-02-28	60.00	20.39	39.61	333.63	294.02	pendiente
+157	22	7	2026-03-15	60.00	17.97	42.03	294.02	251.99	pendiente
+158	22	8	2026-03-31	60.00	15.40	44.60	251.99	207.39	pendiente
+159	22	9	2026-04-15	60.00	12.67	47.33	207.39	160.06	pendiente
+160	22	10	2026-04-30	60.00	9.78	50.22	160.06	109.84	pendiente
+161	22	11	2026-05-15	60.00	6.71	53.29	109.84	56.55	pendiente
+162	22	12	2026-05-31	60.00	3.45	56.55	56.55	0.00	pendiente
+151	22	1	2025-12-15	60.00	30.55	29.45	500.00	470.55	pagada
+152	22	2	2025-12-31	60.00	28.75	31.25	470.55	439.30	pagada
+153	22	3	2026-01-15	60.00	26.84	33.16	439.30	406.14	pagada
+181	24	7	2026-02-15	60.00	17.97	42.03	294.02	251.99	pendiente
+182	24	8	2026-02-28	60.00	15.40	44.60	251.99	207.39	pendiente
+183	24	9	2026-03-15	60.00	12.67	47.33	207.39	160.06	pendiente
+184	24	10	2026-03-31	60.00	9.78	50.22	160.06	109.84	pendiente
+185	24	11	2026-04-15	60.00	6.71	53.29	109.84	56.55	pendiente
+186	24	12	2026-04-30	60.00	3.45	56.55	56.55	0.00	pendiente
+175	24	1	2025-11-15	60.00	30.55	29.45	500.00	470.55	pagada
+176	24	2	2025-11-30	60.00	28.75	31.25	470.55	439.30	pagada
+177	24	3	2025-12-15	60.00	26.84	33.16	439.30	406.14	pagada
+178	24	4	2025-12-31	60.00	24.82	35.18	406.14	370.96	pagada
+179	24	5	2026-01-15	60.00	22.67	37.33	370.96	333.63	pagada
+111	18	5	2026-01-31	65.63	20.81	44.82	207.97	163.15	pagada
+199	26	1	2025-08-15	62.50	34.33	28.17	500.00	471.83	pagada
+200	26	2	2025-08-31	62.50	32.39	30.11	471.83	441.72	pagada
+201	26	3	2025-09-15	62.50	30.33	32.17	441.72	409.55	pagada
+202	26	4	2025-09-30	62.50	28.12	34.38	409.55	375.17	pagada
+203	26	5	2025-10-15	62.50	25.76	36.74	375.17	338.43	pagada
+204	26	6	2025-10-31	62.50	23.23	39.27	338.43	299.16	pagada
+205	26	7	2025-11-15	62.50	20.54	41.96	299.16	257.20	pagada
+206	26	8	2025-11-30	62.50	17.66	44.84	257.20	212.36	pagada
+207	26	9	2025-12-15	62.50	14.58	47.92	212.36	164.44	pagada
+208	26	10	2025-12-31	62.50	11.29	51.21	164.44	113.23	pagada
+210	26	12	2026-01-31	62.50	4.00	58.50	58.50	0.00	pagada
+222	27	12	2026-02-15	24.99	1.64	23.35	23.35	0.00	pendiente
+211	27	1	2025-08-31	24.99	13.71	11.28	200.00	188.72	pagada
+212	27	2	2025-09-15	24.99	12.94	12.05	188.72	176.67	pagada
+213	27	3	2025-09-30	24.99	12.11	12.88	176.67	163.79	pagada
+214	27	4	2025-10-15	24.99	11.23	13.76	163.79	150.03	pagada
+215	27	5	2025-10-31	24.99	10.29	14.70	150.03	135.33	pagada
+216	27	6	2025-11-15	24.99	9.28	15.71	135.33	119.62	pagada
+217	27	7	2025-11-30	24.99	8.20	16.79	119.62	102.83	pagada
+218	27	8	2025-12-15	24.99	7.05	17.94	102.83	84.89	pagada
+219	27	9	2025-12-31	24.99	5.82	19.17	84.89	65.72	pagada
+220	27	10	2026-01-15	24.99	4.51	20.48	65.72	45.24	pagada
+234	28	12	2026-02-15	62.49	4.02	58.47	58.47	0.00	pendiente
+223	28	1	2025-08-31	62.49	34.31	28.18	500.00	471.82	pagada
+224	28	2	2025-09-15	62.49	32.38	30.11	471.82	441.71	pagada
+225	28	3	2025-09-30	62.49	30.31	32.18	441.71	409.53	pagada
+226	28	4	2025-10-15	62.49	28.10	34.39	409.53	375.14	pagada
+227	28	5	2025-10-31	62.49	25.74	36.75	375.14	338.39	pagada
+228	28	6	2025-11-15	62.49	23.22	39.27	338.39	299.12	pagada
+229	28	7	2025-11-30	62.49	20.53	41.96	299.12	257.16	pagada
+230	28	8	2025-12-15	62.49	17.65	44.84	257.16	212.32	pagada
+231	28	9	2025-12-31	62.49	14.57	47.92	212.32	164.40	pagada
+232	28	10	2026-01-15	62.49	11.28	51.21	164.40	113.19	pagada
+245	29	11	2026-02-15	62.50	7.77	54.73	113.23	58.50	pendiente
+246	29	12	2026-02-28	62.50	4.00	58.50	58.50	0.00	pendiente
+235	29	1	2025-09-15	62.50	34.33	28.17	500.00	471.83	pagada
+236	29	2	2025-09-30	62.50	32.39	30.11	471.83	441.72	pagada
+237	29	3	2025-10-15	62.50	30.33	32.17	441.72	409.55	pagada
+238	29	4	2025-10-31	62.50	28.12	34.38	409.55	375.17	pagada
+239	29	5	2025-11-15	62.50	25.76	36.74	375.17	338.43	pagada
+240	29	6	2025-11-30	62.50	23.23	39.27	338.43	299.16	pagada
+241	29	7	2025-12-15	62.50	20.54	41.96	299.16	257.20	pagada
+242	29	8	2025-12-31	62.50	17.66	44.84	257.20	212.36	pagada
+243	29	9	2026-01-15	62.50	14.58	47.92	212.36	164.44	pagada
+253	30	7	2026-02-15	120.00	35.93	84.07	588.02	503.95	pendiente
+254	30	8	2026-02-28	120.00	30.79	89.21	503.95	414.74	pendiente
+255	30	9	2026-03-15	120.00	25.34	94.66	414.74	320.08	pendiente
+256	30	10	2026-03-31	120.00	19.56	100.44	320.08	219.64	pendiente
+257	30	11	2026-04-15	120.00	13.42	106.58	219.64	113.06	pendiente
+258	30	12	2026-04-30	120.00	6.94	113.06	113.06	0.00	pendiente
+247	30	1	2025-11-15	120.00	61.10	58.90	1000.00	941.10	pagada
+248	30	2	2025-11-30	120.00	57.50	62.50	941.10	878.60	pagada
+249	30	3	2025-12-15	120.00	53.69	66.31	878.60	812.29	pagada
+250	30	4	2025-12-31	120.00	49.63	70.37	812.29	741.92	pagada
+251	30	5	2026-01-15	120.00	45.33	74.67	741.92	667.25	pagada
+271	32	1	2025-09-15	37.50	20.60	16.90	300.00	283.10	pagada
+272	32	2	2025-09-30	37.50	19.44	18.06	283.10	265.04	pagada
+273	32	3	2025-10-15	37.50	18.20	19.30	265.04	245.74	pagada
+274	32	4	2025-10-31	37.50	16.87	20.63	245.74	225.11	pagada
+275	32	5	2025-11-15	37.50	15.45	22.05	225.11	203.06	pagada
+276	32	6	2025-11-30	37.50	13.94	23.56	203.06	179.50	pagada
+277	32	7	2025-12-15	37.50	12.32	25.18	179.50	154.32	pagada
+278	32	8	2025-12-31	37.50	10.59	26.91	154.32	127.41	pagada
+279	32	9	2026-01-15	37.50	8.75	28.75	127.41	98.66	pagada
+281	32	11	2026-02-15	37.50	4.66	32.84	67.93	35.09	pendiente
+282	32	12	2026-02-28	37.50	2.41	35.09	35.09	0.00	pendiente
+292	33	10	2026-02-15	62.50	11.29	51.21	164.44	113.23	pendiente
+293	33	11	2026-02-28	62.50	7.77	54.73	113.23	58.50	pendiente
+294	33	12	2026-03-15	62.50	4.00	58.50	58.50	0.00	pendiente
+283	33	1	2025-09-30	62.50	34.33	28.17	500.00	471.83	pagada
+284	33	2	2025-10-15	62.50	32.39	30.11	471.83	441.72	pagada
+285	33	3	2025-10-31	62.50	30.33	32.17	441.72	409.55	pagada
+286	33	4	2025-11-15	62.50	28.12	34.38	409.55	375.17	pagada
+287	33	5	2025-11-30	62.50	25.76	36.74	375.17	338.43	pagada
+288	33	6	2025-12-15	62.50	23.23	39.27	338.43	299.16	pagada
+289	33	7	2025-12-31	62.50	20.54	41.96	299.16	257.20	pagada
+290	33	8	2026-01-15	62.50	17.66	44.84	257.20	212.36	pagada
+296	34	2	2026-02-15	60.42	29.36	31.06	470.77	439.71	pendiente
+297	34	3	2026-02-28	60.42	27.43	32.99	439.71	406.72	pendiente
+298	34	4	2026-03-15	60.42	25.37	35.05	406.72	371.67	pendiente
+299	34	5	2026-03-31	60.42	23.18	37.24	371.67	334.43	pendiente
+300	34	6	2026-04-15	60.42	20.86	39.56	334.43	294.87	pendiente
+301	34	7	2026-04-30	60.42	18.39	42.03	294.87	252.84	pendiente
+302	34	8	2026-05-15	60.42	15.77	44.65	252.84	208.19	pendiente
+221	27	11	2026-01-31	24.99	3.10	21.89	45.24	23.35	pagada
+233	28	11	2026-01-31	62.49	7.77	54.72	113.19	58.47	pagada
+244	29	10	2026-01-31	62.50	11.29	51.21	164.44	113.23	pagada
+252	30	6	2026-01-31	120.00	40.77	79.23	667.25	588.02	pagada
+280	32	10	2026-01-31	37.50	6.77	30.73	98.66	67.93	pagada
+291	33	9	2026-01-31	62.50	14.58	47.92	212.36	164.44	pagada
+295	34	1	2026-01-31	60.42	31.19	29.23	500.00	470.77	pagada
+303	34	9	2026-05-31	60.42	12.99	47.43	208.19	160.76	pendiente
+304	34	10	2026-06-15	60.42	10.03	50.39	160.76	110.37	pendiente
+305	34	11	2026-06-30	60.42	6.88	53.54	110.37	56.83	pendiente
+306	34	12	2026-07-15	60.42	3.59	56.83	56.83	0.00	pendiente
+316	35	10	2026-02-15	62.50	11.29	51.21	164.44	113.23	pendiente
+317	35	11	2026-02-28	62.50	7.77	54.73	113.23	58.50	pendiente
+318	35	12	2026-03-15	62.50	4.00	58.50	58.50	0.00	pendiente
+307	35	1	2025-09-30	62.50	34.33	28.17	500.00	471.83	pagada
+308	35	2	2025-10-15	62.50	32.39	30.11	471.83	441.72	pagada
+309	35	3	2025-10-31	62.50	30.33	32.17	441.72	409.55	pagada
+310	35	4	2025-11-15	62.50	28.12	34.38	409.55	375.17	pagada
+311	35	5	2025-11-30	62.50	25.76	36.74	375.17	338.43	pagada
+312	35	6	2025-12-15	62.50	23.23	39.27	338.43	299.16	pagada
+313	35	7	2025-12-31	62.50	20.54	41.96	299.16	257.20	pagada
+314	35	8	2026-01-15	62.50	17.66	44.84	257.20	212.36	pagada
+327	36	9	2026-02-15	62.50	14.58	47.92	212.36	164.44	pendiente
+328	36	10	2026-02-28	62.50	11.29	51.21	164.44	113.23	pendiente
+329	36	11	2026-03-15	62.50	7.77	54.73	113.23	58.50	pendiente
+330	36	12	2026-03-31	62.50	4.00	58.50	58.50	0.00	pendiente
+319	36	1	2025-10-15	62.50	34.33	28.17	500.00	471.83	pagada
+320	36	2	2025-10-31	62.50	32.39	30.11	471.83	441.72	pagada
+321	36	3	2025-11-15	62.50	30.33	32.17	441.72	409.55	pagada
+322	36	4	2025-11-30	62.50	28.12	34.38	409.55	375.17	pagada
+323	36	5	2025-12-15	62.50	25.76	36.74	375.17	338.43	pagada
+324	36	6	2025-12-31	62.50	23.23	39.27	338.43	299.16	pagada
+325	36	7	2026-01-15	62.50	20.54	41.96	299.16	257.20	pagada
+338	37	8	2026-02-15	62.50	17.66	44.84	257.20	212.36	pendiente
+339	37	9	2026-02-28	62.50	14.58	47.92	212.36	164.44	pendiente
+340	37	10	2026-03-15	62.50	11.29	51.21	164.44	113.23	pendiente
+341	37	11	2026-03-31	62.50	7.77	54.73	113.23	58.50	pendiente
+342	37	12	2026-04-15	62.50	4.00	58.50	58.50	0.00	pendiente
+331	37	1	2025-10-31	62.50	34.33	28.17	500.00	471.83	pagada
+332	37	2	2025-11-15	62.50	32.39	30.11	471.83	441.72	pagada
+333	37	3	2025-11-30	62.50	30.33	32.17	441.72	409.55	pagada
+334	37	4	2025-12-15	62.50	28.12	34.38	409.55	375.17	pagada
+335	37	5	2025-12-31	62.50	25.76	36.74	375.17	338.43	pagada
+336	37	6	2026-01-15	62.50	23.23	39.27	338.43	299.16	pagada
+346	38	4	2026-02-15	62.50	28.12	34.38	409.55	375.17	pendiente
+347	38	5	2026-02-28	62.50	25.76	36.74	375.17	338.43	pendiente
+348	38	6	2026-03-15	62.50	23.23	39.27	338.43	299.16	pendiente
+349	38	7	2026-03-31	62.50	20.54	41.96	299.16	257.20	pendiente
+350	38	8	2026-04-15	62.50	17.66	44.84	257.20	212.36	pendiente
+351	38	9	2026-04-30	62.50	14.58	47.92	212.36	164.44	pendiente
+352	38	10	2026-05-15	62.50	11.29	51.21	164.44	113.23	pendiente
+353	38	11	2026-05-31	62.50	7.77	54.73	113.23	58.50	pendiente
+354	38	12	2026-06-15	62.50	4.00	58.50	58.50	0.00	pendiente
+343	38	1	2025-12-31	62.50	34.33	28.17	500.00	471.83	pagada
+344	38	2	2026-01-15	62.50	32.39	30.11	471.83	441.72	pagada
+356	39	2	2026-02-15	62.50	32.39	30.11	471.83	441.72	pendiente
+357	39	3	2026-02-28	62.50	30.33	32.17	441.72	409.55	pendiente
+358	39	4	2026-03-15	62.50	28.12	34.38	409.55	375.17	pendiente
+359	39	5	2026-03-31	62.50	25.76	36.74	375.17	338.43	pendiente
+360	39	6	2026-04-15	62.50	23.23	39.27	338.43	299.16	pendiente
+361	39	7	2026-04-30	62.50	20.54	41.96	299.16	257.20	pendiente
+362	39	8	2026-05-15	62.50	17.66	44.84	257.20	212.36	pendiente
+363	39	9	2026-05-31	62.50	14.58	47.92	212.36	164.44	pendiente
+364	39	10	2026-06-15	62.50	11.29	51.21	164.44	113.23	pendiente
+365	39	11	2026-06-30	62.50	7.77	54.73	113.23	58.50	pendiente
+366	39	12	2026-07-15	62.50	4.00	58.50	58.50	0.00	pendiente
+368	40	2	2026-02-15	62.50	32.39	30.11	471.83	441.72	pendiente
+369	40	3	2026-02-28	62.50	30.33	32.17	441.72	409.55	pendiente
+370	40	4	2026-03-15	62.50	28.12	34.38	409.55	375.17	pendiente
+371	40	5	2026-03-31	62.50	25.76	36.74	375.17	338.43	pendiente
+372	40	6	2026-04-15	62.50	23.23	39.27	338.43	299.16	pendiente
+373	40	7	2026-04-30	62.50	20.54	41.96	299.16	257.20	pendiente
+374	40	8	2026-05-15	62.50	17.66	44.84	257.20	212.36	pendiente
+375	40	9	2026-05-31	62.50	14.58	47.92	212.36	164.44	pendiente
+376	40	10	2026-06-15	62.50	11.29	51.21	164.44	113.23	pendiente
+315	35	9	2026-01-31	62.50	14.58	47.92	212.36	164.44	pagada
+326	36	8	2026-01-31	62.50	17.66	44.84	257.20	212.36	pagada
+337	37	7	2026-01-31	62.50	20.54	41.96	299.16	257.20	pagada
+345	38	3	2026-01-31	62.50	30.33	32.17	441.72	409.55	pagada
+355	39	1	2026-01-31	62.50	34.33	28.17	500.00	471.83	pagada
+367	40	1	2026-01-31	62.50	34.33	28.17	500.00	471.83	pagada
+377	40	11	2026-06-30	62.50	7.77	54.73	113.23	58.50	pendiente
+378	40	12	2026-07-15	62.50	4.00	58.50	58.50	0.00	pendiente
+381	41	3	2026-02-15	62.50	30.33	32.17	441.72	409.55	pendiente
+382	41	4	2026-02-28	62.50	28.12	34.38	409.55	375.17	pendiente
+383	41	5	2026-03-15	62.50	25.76	36.74	375.17	338.43	pendiente
+384	41	6	2026-03-31	62.50	23.23	39.27	338.43	299.16	pendiente
+385	41	7	2026-04-15	62.50	20.54	41.96	299.16	257.20	pendiente
+386	41	8	2026-04-30	62.50	17.66	44.84	257.20	212.36	pendiente
+387	41	9	2026-05-15	62.50	14.58	47.92	212.36	164.44	pendiente
+388	41	10	2026-05-31	62.50	11.29	51.21	164.44	113.23	pendiente
+389	41	11	2026-06-15	62.50	7.77	54.73	113.23	58.50	pendiente
+390	41	12	2026-06-30	62.50	4.00	58.50	58.50	0.00	pendiente
+379	41	1	2026-01-15	62.50	34.33	28.17	500.00	471.83	pagada
+392	42	2	2026-02-15	62.50	32.39	30.11	471.83	441.72	pendiente
+393	42	3	2026-02-28	62.50	30.33	32.17	441.72	409.55	pendiente
+394	42	4	2026-03-15	62.50	28.12	34.38	409.55	375.17	pendiente
+395	42	5	2026-03-31	62.50	25.76	36.74	375.17	338.43	pendiente
+396	42	6	2026-04-15	62.50	23.23	39.27	338.43	299.16	pendiente
+397	42	7	2026-04-30	62.50	20.54	41.96	299.16	257.20	pendiente
+398	42	8	2026-05-15	62.50	17.66	44.84	257.20	212.36	pendiente
+399	42	9	2026-05-31	62.50	14.58	47.92	212.36	164.44	pendiente
+400	42	10	2026-06-15	62.50	11.29	51.21	164.44	113.23	pendiente
+401	42	11	2026-06-30	62.50	7.77	54.73	113.23	58.50	pendiente
+402	42	12	2026-07-15	62.50	4.00	58.50	58.50	0.00	pendiente
+410	43	8	2026-01-31	62.50	17.66	44.84	257.20	212.36	pendiente
+411	43	9	2026-02-15	62.50	14.58	47.92	212.36	164.44	pendiente
+412	43	10	2026-02-28	62.50	11.29	51.21	164.44	113.23	pendiente
+413	43	11	2026-03-15	62.50	7.77	54.73	113.23	58.50	pendiente
+414	43	12	2026-03-31	62.50	4.00	58.50	58.50	0.00	pendiente
+403	43	1	2025-10-15	62.50	34.33	28.17	500.00	471.83	pagada
+404	43	2	2025-10-31	62.50	32.39	30.11	471.83	441.72	pagada
+405	43	3	2025-11-15	62.50	30.33	32.17	441.72	409.55	pagada
+406	43	4	2025-11-30	62.50	28.12	34.38	409.55	375.17	pagada
+407	43	5	2025-12-15	62.50	25.76	36.74	375.17	338.43	pagada
+408	43	6	2025-12-31	62.50	23.23	39.27	338.43	299.16	pagada
+409	43	7	2026-01-15	62.50	20.54	41.96	299.16	257.20	pagada
+416	44	2	2026-02-15	25.00	12.96	12.04	188.73	176.69	pendiente
+417	44	3	2026-02-28	25.00	12.13	12.87	176.69	163.82	pendiente
+418	44	4	2026-03-15	25.00	11.25	13.75	163.82	150.07	pendiente
+419	44	5	2026-03-31	25.00	10.30	14.70	150.07	135.37	pendiente
+420	44	6	2026-04-15	25.00	9.29	15.71	135.37	119.66	pendiente
+421	44	7	2026-04-30	25.00	8.22	16.78	119.66	102.88	pendiente
+422	44	8	2026-05-15	25.00	7.06	17.94	102.88	84.94	pendiente
+423	44	9	2026-05-31	25.00	5.83	19.17	84.94	65.77	pendiente
+424	44	10	2026-06-15	25.00	4.52	20.48	65.77	45.29	pendiente
+425	44	11	2026-06-30	25.00	3.11	21.89	45.29	23.40	pendiente
+426	44	12	2026-07-15	25.00	1.60	23.40	23.40	0.00	pendiente
+209	26	11	2026-01-15	62.50	7.77	54.73	113.23	58.50	pagada
+428	45	2	2026-02-15	22.50	9.27	13.23	187.40	174.17	pendiente
+429	45	3	2026-02-28	22.50	8.62	13.88	174.17	160.29	pendiente
+430	45	4	2026-03-15	22.50	7.93	14.57	160.29	145.72	pendiente
+431	45	5	2026-03-31	22.50	7.21	15.29	145.72	130.43	pendiente
+432	45	6	2026-04-15	22.50	6.45	16.05	130.43	114.38	pendiente
+433	45	7	2026-04-30	22.50	5.66	16.84	114.38	97.54	pendiente
+434	45	8	2026-05-15	22.50	4.83	17.67	97.54	79.87	pendiente
+435	45	9	2026-05-31	22.50	3.95	18.55	79.87	61.32	pendiente
+436	45	10	2026-06-15	22.50	3.03	19.47	61.32	41.85	pendiente
+437	45	11	2026-06-30	22.50	2.07	20.43	41.85	21.42	pendiente
+438	45	12	2026-07-15	22.50	1.08	21.42	21.42	0.00	pendiente
+440	46	2	2026-02-15	60.00	28.75	31.25	470.55	439.30	pendiente
+441	46	3	2026-02-28	60.00	26.84	33.16	439.30	406.14	pendiente
+442	46	4	2026-03-15	60.00	24.82	35.18	406.14	370.96	pendiente
+443	46	5	2026-03-31	60.00	22.67	37.33	370.96	333.63	pendiente
+444	46	6	2026-04-15	60.00	20.39	39.61	333.63	294.02	pendiente
+445	46	7	2026-04-30	60.00	17.97	42.03	294.02	251.99	pendiente
+446	46	8	2026-05-15	60.00	15.40	44.60	251.99	207.39	pendiente
+447	46	9	2026-05-31	60.00	12.67	47.33	207.39	160.06	pendiente
+448	46	10	2026-06-15	60.00	9.78	50.22	160.06	109.84	pendiente
+449	46	11	2026-06-30	60.00	6.71	53.29	109.84	56.55	pendiente
+450	46	12	2026-07-15	60.00	3.45	56.55	56.55	0.00	pendiente
+380	41	2	2026-01-31	62.50	32.39	30.11	471.83	441.72	pagada
+391	42	1	2026-01-31	62.50	34.33	28.17	500.00	471.83	pagada
+427	45	1	2026-01-31	22.50	9.90	12.60	200.00	187.40	pagada
+439	46	1	2026-01-31	60.00	30.55	29.45	500.00	470.55	pagada
+415	44	1	2026-01-31	25.00	13.73	11.27	200.00	188.73	pendiente
+463	49	1	2026-02-15	60.42	31.19	29.23	500.00	470.77	pendiente
+464	49	2	2026-02-28	60.42	29.36	31.06	470.77	439.71	pendiente
+465	49	3	2026-03-15	60.42	27.43	32.99	439.71	406.72	pendiente
+466	49	4	2026-03-31	60.42	25.37	35.05	406.72	371.67	pendiente
+467	49	5	2026-04-15	60.42	23.18	37.24	371.67	334.43	pendiente
+468	49	6	2026-04-30	60.42	20.86	39.56	334.43	294.87	pendiente
+469	49	7	2026-05-15	60.42	18.39	42.03	294.87	252.84	pendiente
+470	49	8	2026-05-31	60.42	15.77	44.65	252.84	208.19	pendiente
+471	49	9	2026-06-15	60.42	12.99	47.43	208.19	160.76	pendiente
+472	49	10	2026-06-30	60.42	10.03	50.39	160.76	110.37	pendiente
+473	49	11	2026-07-15	60.42	6.88	53.54	110.37	56.83	pendiente
+474	49	12	2026-07-31	60.42	3.59	56.83	56.83	0.00	pendiente
+475	50	1	2026-02-15	120.00	61.10	58.90	1000.00	941.10	pendiente
+476	50	2	2026-02-28	120.00	57.50	62.50	941.10	878.60	pendiente
+477	50	3	2026-03-15	120.00	53.69	66.31	878.60	812.29	pendiente
+478	50	4	2026-03-31	120.00	49.63	70.37	812.29	741.92	pendiente
+479	50	5	2026-04-15	120.00	45.33	74.67	741.92	667.25	pendiente
+480	50	6	2026-04-30	120.00	40.77	79.23	667.25	588.02	pendiente
+481	50	7	2026-05-15	120.00	35.93	84.07	588.02	503.95	pendiente
+482	50	8	2026-05-31	120.00	30.79	89.21	503.95	414.74	pendiente
+483	50	9	2026-06-15	120.00	25.34	94.66	414.74	320.08	pendiente
+484	50	10	2026-06-30	120.00	19.56	100.44	320.08	219.64	pendiente
+485	50	11	2026-07-15	120.00	13.42	106.58	219.64	113.06	pendiente
+486	50	12	2026-07-31	120.00	6.94	113.06	113.06	0.00	pendiente
+\.
+
+
+--
+-- Data for Name: companies; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.companies (id, name, created_at) FROM stdin;
+3	Gentile	2026-01-21 22:58:45.317924
+4	Multiservicios Arsan	2026-01-23 15:05:42.354846
+5	Hotel Dos Rios	2026-01-23 15:13:21.579604
+6	Suproser	2026-01-23 21:58:45.15712
+\.
+
+
+--
+-- Data for Name: pagos; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.pagos (id, prestamo_id, quincena_num, fecha_pago, monto_pagado, created_at) FROM stdin;
+47	18	1	2025-11-30	65.63	2026-01-22 21:27:12.830819
+48	18	2	2025-12-15	65.63	2026-01-22 21:27:17.578026
+49	18	3	2025-12-31	65.63	2026-01-22 21:27:19.056094
+50	18	4	2026-01-15	65.63	2026-01-22 21:27:20.568333
+51	19	1	2025-11-15	60.00	2026-01-22 21:28:36.308279
+52	19	2	2025-11-30	60.00	2026-01-22 21:28:37.757406
+53	19	3	2025-12-15	60.00	2026-01-22 21:28:39.183187
+54	19	4	2025-12-31	60.00	2026-01-22 21:28:40.937052
+55	19	5	2026-01-15	60.00	2026-01-22 21:28:42.568077
+56	20	1	2025-11-15	62.50	2026-01-22 21:29:35.236156
+57	20	2	2025-11-30	62.50	2026-01-22 21:29:36.545411
+58	20	3	2025-12-15	62.50	2026-01-22 21:29:38.055488
+59	20	4	2025-12-31	62.50	2026-01-22 21:29:39.742718
+60	20	5	2026-01-15	62.50	2026-01-22 21:29:40.887381
+66	22	1	2025-12-15	60.00	2026-01-22 21:32:42.174138
+67	22	2	2025-12-31	60.00	2026-01-22 21:32:43.519301
+68	22	3	2026-01-15	60.00	2026-01-22 21:32:45.511603
+69	24	1	2025-11-15	60.00	2026-01-22 21:35:56.165147
+70	24	2	2025-11-30	60.00	2026-01-22 21:35:57.637522
+71	24	3	2025-12-15	60.00	2026-01-22 21:35:58.826392
+72	24	4	2025-12-31	60.00	2026-01-22 21:36:00.289828
+73	24	5	2026-01-15	60.00	2026-01-22 21:36:03.637453
+79	26	1	2025-08-15	62.50	2026-01-22 21:43:25.972461
+80	26	2	2025-08-31	62.50	2026-01-22 21:43:30.691159
+81	26	3	2025-09-15	62.50	2026-01-22 21:43:32.098225
+82	26	4	2025-09-30	62.50	2026-01-22 21:43:33.314519
+83	26	5	2025-10-15	62.50	2026-01-22 21:43:34.574229
+84	26	6	2025-10-31	62.50	2026-01-22 21:43:38.875789
+85	26	7	2025-11-15	62.50	2026-01-22 21:43:40.131201
+86	26	8	2025-11-30	62.50	2026-01-22 21:43:41.795326
+87	26	9	2025-12-15	62.50	2026-01-22 21:43:43.535436
+88	26	10	2025-12-31	62.50	2026-01-22 21:43:45.118746
+90	27	1	2025-08-31	24.99	2026-01-22 21:51:18.010758
+91	27	2	2025-09-15	24.99	2026-01-22 21:51:19.277852
+92	27	3	2025-09-30	24.99	2026-01-22 21:51:22.724491
+93	27	4	2025-10-15	24.99	2026-01-22 21:51:24.074313
+94	27	5	2025-10-31	24.99	2026-01-22 21:51:25.25333
+95	27	6	2025-11-15	24.99	2026-01-22 21:51:34.894903
+96	27	7	2025-11-30	24.99	2026-01-22 21:52:15.312408
+97	27	8	2025-12-15	24.99	2026-01-22 21:52:18.330436
+98	27	9	2025-12-31	24.99	2026-01-22 21:52:19.999539
+99	27	10	2026-01-15	24.99	2026-01-22 21:52:21.492009
+100	28	1	2025-08-31	62.49	2026-01-22 21:54:54.75606
+101	28	2	2025-09-15	62.49	2026-01-22 21:54:57.660757
+102	28	3	2025-09-30	62.49	2026-01-22 21:54:59.278642
+103	28	4	2025-10-15	62.49	2026-01-22 21:55:02.605499
+104	28	5	2025-10-31	62.49	2026-01-22 21:55:03.955197
+105	28	6	2025-11-15	62.49	2026-01-22 21:55:05.983794
+106	28	7	2025-11-30	62.49	2026-01-22 21:55:07.279187
+107	28	8	2025-12-15	62.49	2026-01-22 21:55:09.277617
+108	28	9	2025-12-31	62.49	2026-01-22 21:55:10.962739
+109	28	10	2026-01-15	62.49	2026-01-22 21:55:13.082572
+110	29	1	2025-09-15	62.50	2026-01-22 22:16:01.968008
+111	29	2	2025-09-30	62.50	2026-01-22 22:16:03.756504
+112	29	3	2025-10-15	62.50	2026-01-22 22:16:08.843779
+113	29	4	2025-10-31	62.50	2026-01-22 22:16:10.213709
+114	29	5	2025-11-15	62.50	2026-01-22 22:16:11.670036
+115	29	6	2025-11-30	62.50	2026-01-22 22:16:13.000016
+116	29	7	2025-12-15	62.50	2026-01-22 22:16:16.180341
+117	29	8	2025-12-31	62.50	2026-01-22 22:16:17.686363
+118	29	9	2026-01-15	62.50	2026-01-22 22:16:19.160925
+119	30	1	2025-11-15	120.00	2026-01-22 22:18:49.89133
+120	30	2	2025-11-30	120.00	2026-01-22 22:18:52.473235
+121	30	3	2025-12-15	120.00	2026-01-22 22:18:54.010589
+122	30	4	2025-12-31	120.00	2026-01-22 22:18:55.407705
+123	30	5	2026-01-15	120.00	2026-01-22 22:18:56.809637
+134	32	1	2025-09-15	37.50	2026-01-23 14:37:02.179399
+135	32	2	2025-09-30	37.50	2026-01-23 14:37:03.830069
+136	32	3	2025-10-15	37.50	2026-01-23 14:37:05.495782
+137	32	4	2025-10-31	37.50	2026-01-23 14:37:06.927499
+138	32	5	2025-11-15	37.50	2026-01-23 14:37:08.94612
+139	32	6	2025-11-30	37.50	2026-01-23 14:37:10.611696
+140	32	7	2025-12-15	37.50	2026-01-23 14:37:13.180504
+141	32	8	2025-12-31	37.50	2026-01-23 14:37:17.605366
+142	32	9	2026-01-15	37.50	2026-01-23 14:37:19.046699
+143	33	1	2025-09-30	62.50	2026-01-23 14:39:18.874803
+144	33	2	2025-10-15	62.50	2026-01-23 14:39:20.977194
+145	33	3	2025-10-31	62.50	2026-01-23 14:39:22.328256
+146	33	4	2025-11-15	62.50	2026-01-23 14:39:23.949444
+147	33	5	2025-11-30	62.50	2026-01-23 14:39:25.398621
+148	33	6	2025-12-15	62.50	2026-01-23 14:39:26.710697
+149	33	7	2025-12-31	62.50	2026-01-23 14:39:28.042853
+150	33	8	2026-01-15	62.50	2026-01-23 14:39:29.427982
+151	35	1	2025-09-30	62.50	2026-01-23 14:44:29.230027
+152	35	2	2025-10-15	62.50	2026-01-23 14:44:30.861056
+153	35	3	2025-10-31	62.50	2026-01-23 14:44:32.375924
+154	35	4	2025-11-15	62.50	2026-01-23 14:44:33.941891
+155	35	5	2025-11-30	62.50	2026-01-23 14:44:36.233075
+156	35	6	2025-12-15	62.50	2026-01-23 14:44:37.673987
+157	35	7	2025-12-31	62.50	2026-01-23 14:44:39.190139
+158	35	8	2026-01-15	62.50	2026-01-23 14:44:40.588178
+159	36	1	2025-10-15	62.50	2026-01-23 14:46:48.066741
+160	36	2	2025-10-31	62.50	2026-01-23 14:46:49.457963
+161	36	3	2025-11-15	62.50	2026-01-23 14:46:50.876248
+162	36	4	2025-11-30	62.50	2026-01-23 14:46:51.987606
+163	36	5	2025-12-15	62.50	2026-01-23 14:46:54.02228
+164	36	6	2025-12-31	62.50	2026-01-23 14:46:55.373669
+165	36	7	2026-01-15	62.50	2026-01-23 14:46:57.171784
+166	37	1	2025-10-31	62.50	2026-01-23 14:49:22.673714
+167	37	2	2025-11-15	62.50	2026-01-23 14:49:24.926368
+168	37	3	2025-11-30	62.50	2026-01-23 14:49:26.052877
+169	37	4	2025-12-15	62.50	2026-01-23 14:49:28.38397
+170	37	5	2025-12-31	62.50	2026-01-23 14:49:30.106672
+171	37	6	2026-01-15	62.50	2026-01-23 14:49:31.680792
+172	38	1	2025-12-31	62.50	2026-01-23 14:57:27.567461
+173	38	2	2026-01-15	62.50	2026-01-23 14:57:29.137535
+174	41	1	2026-01-15	62.50	2026-01-23 15:08:20.041872
+175	43	1	2025-10-15	62.50	2026-01-23 15:17:07.445468
+176	43	2	2025-10-31	62.50	2026-01-23 15:17:12.45443
+177	43	3	2025-11-15	62.50	2026-01-23 15:17:14.913535
+178	43	4	2025-11-30	62.50	2026-01-23 15:17:17.011678
+179	43	5	2025-12-15	62.50	2026-01-23 15:17:18.920094
+180	43	6	2025-12-31	62.50	2026-01-23 15:17:20.827242
+181	43	7	2026-01-15	62.50	2026-01-23 15:17:22.9318
+182	26	11	2026-01-15	62.50	2026-01-23 18:40:35.145274
+183	41	2	2026-01-31	62.50	2026-01-31 18:27:53.000402
+184	42	1	2026-01-31	62.50	2026-01-31 18:28:26.438408
+186	18	5	2026-01-31	65.63	2026-02-10 13:55:03.331345
+187	19	6	2026-01-31	60.00	2026-02-10 13:55:11.964796
+188	20	6	2026-01-31	62.50	2026-02-10 13:55:15.929402
+189	22	4	2026-01-31	60.00	2026-02-10 13:55:20.595125
+190	24	6	2026-01-31	60.00	2026-02-10 13:55:25.451231
+192	26	12	2026-01-31	62.50	2026-02-10 13:55:34.720884
+193	27	11	2026-01-31	24.99	2026-02-10 13:55:41.145356
+194	28	11	2026-01-31	62.49	2026-02-10 13:55:46.266417
+195	29	10	2026-01-31	62.50	2026-02-10 13:55:51.861484
+196	30	6	2026-01-31	120.00	2026-02-10 13:55:55.973247
+197	32	10	2026-01-31	37.50	2026-02-10 13:56:01.709772
+198	33	9	2026-01-31	62.50	2026-02-10 13:56:08.126763
+199	34	1	2026-01-31	60.42	2026-02-10 13:56:12.957553
+200	35	9	2026-01-31	62.50	2026-02-10 13:56:19.252756
+201	36	8	2026-01-31	62.50	2026-02-10 13:56:23.283575
+202	37	7	2026-01-31	62.50	2026-02-10 13:56:30.033398
+203	38	3	2026-01-31	62.50	2026-02-10 13:56:37.498502
+204	39	1	2026-01-31	62.50	2026-02-10 13:56:41.4524
+205	40	1	2026-01-31	62.50	2026-02-10 13:56:45.07756
+206	45	1	2026-01-31	22.50	2026-02-10 14:02:44.435462
+208	46	1	2026-01-31	60.00	2026-02-10 14:02:58.743942
+\.
+
+
+--
+-- Data for Name: persons; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.persons (id, cedula, nombre, apellido, email, telefono, direccion, company_id, salario_mensual, meses_en_empresa, inicio_contrato, created_at) FROM stdin;
+47	8-797-1913 	Carlos 	Ruiz	carlosruiz.02@hotmail.com	64951142	URBANIZACIÓN EL PALMAR DE ARRAIJÁN	\N	746.14	81	2019-03-06	2026-02-10 13:08:22.562205
+48	9-107-2542 	Alex	Flores 	alexfloresd10@gmail.com	66016314	Avenida sur Santiago Corregimiento de Santiago cabecera Distrito de Santiago Provincia de Veraguas 	\N	1591.00	18	2026-02-01	2026-02-10 13:12:24.612648
+49	8-719-1934	Yaleida 	Campos	yaleidacampos@gmail.com	69205378	Santa Marta corregimiento de Belisario Frias	\N	1320.00	25	2000-02-18	2026-02-10 13:25:45.192657
+50	8-756-47 	Melissa	Espinosa	melissaespinosa015@gmail.com	64631020	Praddras De San Lorenzo	\N	1000.00	39	2022-11-07	2026-02-10 13:41:46.54626
+51	1-737-2462	Jerome	Foster	jeromejamal08@gmail.com	67037406	Panam, Calidonia calle este Ph Plaza del pacifico 	\N	1250.00	84	2018-08-06	2026-02-10 15:28:43.792287
+52	9-744-1210	Sherlyn	Sierra	sherlynsierra@hotmail.com	68821395	Santiago	\N	750.00	4	2025-10-16	2026-02-10 17:16:45.57788
+53	8-829-960 	Jennifer 	Gómez 	jennyg2788@outlook.com	61436859	Arraiján vacamomte calle 8 transversal casa F138 	\N	650.00	7	2025-08-01	2026-02-10 19:38:54.448724
+54	7-704-1781	Corina del Carmen 	Bernal Castillo de Rodríguez	corybernal@gmail.com	65388728	Calle 73 San Francisco, PH Premiun Tower 	\N	750.00	17	2024-09-01	2026-02-10 19:43:20.364302
+55	8-289-813	Yahir 	 Cerrud 	alexarosemena2567@gmail.com	65652934	Veranillo, San Miguelito, calle Q #31-30 	\N	1.03	96	2018-05-18	2026-02-11 16:21:40.302826
+16	P1	Miguel	Vega				3	0.00	0	\N	2026-01-22 21:27:07.282011
+17	P2	Kary	Ospina				3	0.00	0	\N	2026-01-22 21:28:26.865351
+18	P3	Mirluz	Hernandez				3	0.00	0	\N	2026-01-22 21:29:26.119332
+20	P5	Karen	Menguisama				3	0.00	0	\N	2026-01-22 21:32:36.787914
+21	P6	Abelardo	Galindo				3	0.00	0	\N	2026-01-22 21:34:20.679853
+22	BA969046	Hector	Toloza				3	0.00	0	\N	2026-01-22 21:39:42.715455
+23	BC398436	Mariela 	Iturriago				3	0.00	0	\N	2026-01-22 21:43:15.729532
+24	8-963-1995	Carlos	Bernal				3	0.00	0	\N	2026-01-22 21:51:10.795611
+25	AR931732	Daysi	Romero				3	0.00	0	\N	2026-01-22 21:54:37.9492
+26	10-32-156	Cirilio	Garcia				3	0.00	0	\N	2026-01-22 22:15:54.918361
+27	E-8-219170	Diana Patricia	Bolaño				3	0.00	0	\N	2026-01-22 22:18:36.403474
+28	8-903-2149	Nathalie 	Rodriguez				3	0.00	0	\N	2026-01-23 14:34:49.542294
+29	BD511738	Yudy	Valencia Morales				3	0.00	0	\N	2026-01-23 14:39:06.632352
+30	8-857-390	Yanet	Barba				3	0.00	0	\N	2026-01-23 14:42:25.717564
+31	E-8-210517	Sandra Sofia	Santrich Salas				3	0.00	0	\N	2026-01-23 14:44:21.927963
+32	8-950-2077	Lloyd	Muir				3	0.00	0	\N	2026-01-23 14:46:41.596014
+33	181320025	Otto	Bozo				3	0.00	0	\N	2026-01-23 14:49:05.084637
+35	AX175791	Rosa Elena	Romero				3	0.00	0	\N	2026-01-23 14:57:18.659609
+36	C03196617	Reina Gabriela	Miranda				3	0.00	0	\N	2026-01-23 14:59:54.492692
+37	10-705-625	Nelson	Ayarza				3	0.00	0	\N	2026-01-23 15:01:00.577105
+38	8-736-1318	Omar	Arcia				4	0.00	0	\N	2026-01-23 15:08:07.181384
+39	8-530-1501	Dayra	Parra				4	0.00	0	\N	2026-01-23 15:09:47.872087
+40	4-211-84	Jose	Castillo				5	0.00	0	\N	2026-01-23 15:15:35.771893
+41	4-776-1038	Ilcia	Pitti				5	0.00	0	\N	2026-01-23 15:18:26.869852
+34	8-963-403	Adonis 	navas	adonisyomar10@gmail.com	63314432	Río abajo	6	650.00	27	2023-09-16	2026-01-23 14:51:33.587459
+42	8-873-1421	Johany Mercedes 	Vargas Quintero 	johanyvargas6@gmail.com	65407489	Santa Marta EDF. Miguel Micky Sierra 	6	800.00	14	2025-11-01	2026-01-29 16:45:55.223934
+43	8-917-1870	Eduardo	vaccaro	evaccaroa@gmail.com	62346085	costa del este	\N	1000.00	34	2026-01-01	2026-01-29 19:33:34.409003
+44	AX224002	Carlos 	Cifuentes 	carloscifuentes1179@gmail.com	66497173	José D. Espinar, el crisol, san Miguelito, calle Diana de Gales, casa K-14	\N	788.88	46	2022-03-24	2026-02-03 23:07:12.825376
+45	C03260404	Brenda 	Siles	brendamar.silex62@gmail.com	63530262	Entrada san isidro, barriada santa rita mano derecha 	3	635.00	5	2025-09-09	2026-02-04 18:12:48.217014
+19	P4	Yazmin	Ortega				3	0.00	0	\N	2026-01-22 21:30:54.2269
+46	8-888-1335	Marcela 	Aguilar 	aguilar340m@gmail.com	67369143	24 de diciembre pradera azul ph monte bello 	\N	0.10	24	2024-01-03	2026-02-06 01:23:52.762486
+\.
+
+
+--
+-- Data for Name: prestamos; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.prestamos (id, solicitud_id, principal, interes_total, cuota_quincenal, total_quincenas, proximo_pago, saldo_pendiente, estado, created_at) FROM stdin;
+33	34	500.00	250.00	62.50	12	2026-02-15	164.44	activa	2026-01-23 14:39:06.785739
+34	35	500.00	225.00	60.42	12	2026-02-15	470.77	activa	2026-01-23 14:42:25.871756
+35	36	500.00	250.00	62.50	12	2026-02-15	164.44	activa	2026-01-23 14:44:22.079909
+36	37	500.00	250.00	62.50	12	2026-02-15	212.36	activa	2026-01-23 14:46:41.748544
+37	38	500.00	250.00	62.50	12	2026-02-15	257.20	activa	2026-01-23 14:49:05.237971
+38	40	500.00	250.00	62.50	12	2026-02-15	409.55	activa	2026-01-23 14:57:18.813702
+39	41	500.00	250.00	62.50	12	2026-02-15	471.83	activa	2026-01-23 14:59:54.64509
+40	42	500.00	250.00	62.50	12	2026-02-15	471.83	activa	2026-01-23 15:01:00.730964
+45	39	200.00	70.00	22.50	12	2026-02-15	187.40	activa	2026-01-23 21:59:15.878727
+46	47	500.00	220.00	60.00	12	2026-02-15	470.55	activa	2026-01-29 18:02:35.309843
+44	46	200.00	100.00	25.00	12	2026-01-31	200.00	activa	2026-01-23 15:18:27.025853
+51	57	1500.00	0.00	0.00	0	2026-02-10	0.00	rechazada	2026-02-10 14:27:17.748126
+52	55	700.00	0.00	0.00	0	2026-02-10	0.00	rechazada	2026-02-10 14:27:21.942146
+53	56	500.00	0.00	0.00	0	2026-02-10	0.00	rechazada	2026-02-10 14:27:31.914999
+43	45	500.00	250.00	62.50	12	2026-01-31	257.20	activa	2026-01-23 15:15:35.925116
+47	48	500.00	0.00	0.00	0	2026-01-29	0.00	rechazada	2026-01-29 20:42:49.916522
+41	43	500.00	250.00	62.50	12	2026-02-15	441.72	activa	2026-01-23 15:08:07.337581
+42	44	500.00	250.00	62.50	12	2026-02-15	471.83	activa	2026-01-23 15:09:48.026035
+49	51	500.00	225.00	60.42	12	2026-02-15	500.00	activa	2026-02-04 20:57:36.001298
+50	52	1000.00	440.00	120.00	12	2026-02-15	1000.00	activa	2026-02-04 21:06:27.7779
+18	19	350.00	175.00	65.63	8	2026-02-15	163.15	activa	2026-01-22 21:27:07.436767
+19	20	500.00	220.00	60.00	12	2026-02-15	294.02	activa	2026-01-22 21:28:27.018478
+20	21	500.00	250.00	62.50	12	2026-02-15	299.16	activa	2026-01-22 21:29:26.27243
+22	23	500.00	220.00	60.00	12	2026-02-15	370.96	activa	2026-01-22 21:32:36.941239
+24	25	500.00	220.00	60.00	12	2026-02-15	294.02	activa	2026-01-22 21:35:46.837175
+26	27	500.00	250.00	62.50	12	2026-01-31	0.00	completada	2026-01-22 21:43:15.883096
+27	28	200.00	99.87	24.99	12	2026-02-15	23.35	activa	2026-01-22 21:51:10.946516
+28	29	500.00	249.88	62.49	12	2026-02-15	58.47	activa	2026-01-22 21:54:38.100365
+29	30	500.00	250.00	62.50	12	2026-02-15	113.23	activa	2026-01-22 22:15:55.111047
+30	31	1000.00	440.00	120.00	12	2026-02-15	588.02	activa	2026-01-22 22:18:36.556775
+32	33	300.00	150.00	37.50	12	2026-02-15	67.93	activa	2026-01-23 14:36:54.919394
+\.
+
+
+--
+-- Data for Name: solicitudes; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.solicitudes (id, person_id, foto_cedula, monto_solicitado, duracion_meses, tipo_cuenta_bancaria, numero_cuenta, banco, estado, created_at, empresa) FROM stdin;
+19	16	{}	350.00	4	ahorros			aprobada	2026-01-22 21:27:07.360405	Gentile
+20	17	{}	500.00	6	ahorros			aprobada	2026-01-22 21:28:26.941813	Gentile
+21	18	{}	500.00	6	ahorros			aprobada	2026-01-22 21:29:26.196285	Gentile
+22	19	{}	1000.00	6	ahorros			aprobada	2026-01-22 21:30:54.303809	Gentile
+23	20	{}	500.00	6	ahorros			aprobada	2026-01-22 21:32:36.865389	Gentile
+24	21	{}	500.00	6	ahorros			aprobada	2026-01-22 21:34:20.755913	Gentile
+25	21	{}	500.00	6	ahorros			aprobada	2026-01-22 21:35:46.761158	Gentile
+26	22	{}	500.00	6	ahorros			aprobada	2026-01-22 21:39:42.792463	Gentile
+27	23	{}	500.00	6	ahorros			aprobada	2026-01-22 21:43:15.806035	Gentile
+28	24	{}	200.00	6	ahorros			aprobada	2026-01-22 21:51:10.870843	Gentile
+29	25	{}	500.00	6	ahorros			aprobada	2026-01-22 21:54:38.024617	Gentile
+30	26	{}	500.00	6	ahorros			aprobada	2026-01-22 22:15:54.994942	Gentile
+31	27	{}	1000.00	6	ahorros			aprobada	2026-01-22 22:18:36.479611	Gentile
+32	28	{}	300.00	6	ahorros			aprobada	2026-01-23 14:34:49.622315	Gentile
+33	28	{}	300.00	6	ahorros			aprobada	2026-01-23 14:36:54.843151	Gentile
+34	29	{}	500.00	6	ahorros			aprobada	2026-01-23 14:39:06.709902	Gentile
+35	30	{}	500.00	6	ahorros			aprobada	2026-01-23 14:42:25.79452	Gentile
+36	31	{}	500.00	6	ahorros			aprobada	2026-01-23 14:44:22.004092	Gentile
+37	32	{}	500.00	6	ahorros			aprobada	2026-01-23 14:46:41.672019	Gentile
+38	33	{}	500.00	6	ahorros			aprobada	2026-01-23 14:49:05.161679	Gentile
+40	35	{}	500.00	6	ahorros			aprobada	2026-01-23 14:57:18.736684	Gentile
+41	36	{}	500.00	6	ahorros			aprobada	2026-01-23 14:59:54.568806	Gentile
+42	37	{}	500.00	6	ahorros			aprobada	2026-01-23 15:01:00.654474	Gentile
+43	38	{}	500.00	6	ahorros			aprobada	2026-01-23 15:08:07.258572	Multiservicios Arsan
+44	39	{}	500.00	6	ahorros			aprobada	2026-01-23 15:09:47.949688	Multiservicios Arsan
+45	40	{}	500.00	6	ahorros			aprobada	2026-01-23 15:15:35.848072	Hotel Dos Rios
+46	41	{}	200.00	6	ahorros			aprobada	2026-01-23 15:18:26.948278	Hotel Dos Rios
+39	34	{https://storage.tally.so/private/IMG_20260123_091429.jpg?id=X8QW6g&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ilg4UVc2ZyIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc2OTE3OTg5Mn0.W585rU9cGQ_HQ6tGc8jqzlgmFr6NgnXCG7-Vvxbejbs&signature=9d1994fbdf8bab9b0aece6ceeb644e494744d8efebb1bd7b0a3cbefd2623466d}	200.00	6	Ahorro	472001694588	Banco general	aprobada	2026-01-23 14:51:33.663452	Suproser
+47	42	{https://storage.tally.so/private/1769704535779104884594100914582.jpg?id=pJYdxV&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InBKWWR4ViIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc2OTcwNTE1NH0.I2tNv6CwRCtKzwDQoq58dYc1qQ_J_cFxQaIujn544LI&signature=57a83e0e78f6d3e5540c3b749d9c656fe51c730cafdcd522145e31514bd4b26c}	500.00	6	Ahorro	419987480467	Banco General 	aprobada	2026-01-29 16:45:55.298961	Suplidora De Productos y Servicio, S.A. 
+48	43	{https://storage.tally.so/private/518273367_1329274282532614_3838479161080741523_n.jpg?id=yo8yQX&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InlvOHlRWCIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc2OTcxNTIxM30.PN8e_DR7PrdMyTqT8xfbaIxbwGzhYE1vWrh6ivGZTLw&signature=a59337adbb9449d0a5d1cf394c67d6042fbb4378950fea0c1a4dd3907a8ec5ec}	500.00	6	Ahorro	1248594	Banco general	rechazada	2026-01-29 19:33:34.477638	suproser
+49	44	{https://storage.tally.so/private/7a81f2a6-7e07-4c87-87e0-98cf73de4961.jpeg?id=gJyOrN&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImdKeU9yTiIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc3MDE2MDAzMX0.hT7jIMFF2V7e78g1llm6J2sMry6vIZdUBI3gmPR1898&signature=05e4d4facf6e10b3d0ee8f1263ddb794ffda615951e356859d1bbaa7147e7f4a}	700.00	6	Ahorro	431972732115	Banco General 	nueva	2026-02-03 23:07:12.927402	G & H S.A
+50	45	{https://storage.tally.so/private/image.jpg?id=ydPy2p&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InlkUHkycCIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc3MDIyODc2N30._q5fjV6ruYy8ioEywlqqR5xFUARs8AHW3hMRFWeFg0U&signature=e74354691f2b7080a8c9f0e916e4f5da88edf1cd4b9e9dc17ea54eea3a2b2645}	300.00	6	Ahorro	471966466001	Banco General	aprobada	2026-02-04 18:12:48.292787	Gentile Gurmet
+51	45	{https://storage.tally.so/private/image.jpg?id=8R1j8O&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjhSMWo4TyIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc3MDIzNjUzNH0.9orC9X_APMHHNH4RXBAbC91KZ2U7Xv6qdUihmgswgYY&signature=b381e23d1bf257b2da747e4888e87dac415c36390a6f6161cacc561705ee2973}	500.00	6	Ahorro	471966466001	Banco General	aprobada	2026-02-04 20:22:15.305606	Gentile Gurmet
+52	19	{}	1000.00	6	ahorros			aprobada	2026-02-04 21:06:27.703163	Gentile
+53	46	{https://storage.tally.so/private/Screenshot_2026-02-05-20-20-29-795_com.miui.gallery.jpg?id=qkLpXO&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InFrTHBYTyIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc3MDM0MTAzMX0.oKKt8KsROokj2lOVyocHxKEyYq3yWwcwhakkdTrhkH0&signature=219fb514738f6bda42007dace11eb43163d0e3ad6693863c0b2873daf1bca565}	400.00	6	Ahorro	472993885263	Banco general 	nueva	2026-02-06 01:23:52.838717	Dulces delicias
+54	47	{https://storage.tally.so/private/IMG-20251223-WA0008.jpg?id=aa6ajy&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFhNmFqeSIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc3MDcyODkwMX0.U1AG4ENtQxMQIoV9Ua0NGHcqGQIPb7D9r-XPESzz1AA&signature=a54dc681beccb4d2219b550f8d16370896c431d0ce58876506cadf57b2bae7fb}	500.00	6	Ahorro	472981958722	Banco General 	nueva	2026-02-10 13:08:22.648434	W hotel panamá 
+55	48	{https://storage.tally.so/private/17707286887624877232260647230557.jpg?id=rk6JzX&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InJrNkp6WCIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc3MDcyOTE0M30.cmjm8cY1vIG_i2ZZpLH9jyXoqJst0C7-KcVfukN0LyI&signature=00bb6b2a3e35c03ecd90ec190cc02f49ae5e7ceaea00255b53d23ea617712bf3}	700.00	6	Ahorro	472961700334	Banco General sucursal Santiago de Veraguas 	rechazada	2026-02-10 13:12:24.685646	Css policlínica Dr Horacio Diaz Gómez 
+56	49	{https://storage.tally.so/private/74DDF480-50BE-49BD-9D61-27F054FA3849.jpeg?id=L6bkjl&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ikw2YmtqbCIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc3MDcyOTk0NH0.I1g1fxo0hNEE5-1lz2kpR_KlyAh9WNs-WAfdrtPzZ7A&signature=aca33e05d9145dccff335200bc10ed42f9cd2d48967b3724fd340b1b23202865}	500.00	6	Ahorro	420993175177	General	rechazada	2026-02-10 13:25:45.264485	Idaan
+57	50	{https://storage.tally.so/private/IMG_20260106_101351.jpg?id=8RKEo5&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjhSS0VvNSIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc3MDczMDkwNX0.ErMo5dlO20CF5YyQV8F5scll5XS0S3ARdwgDl8R9jtg&signature=7cce4b8fc6886870ef93077ea6f9f0e8340c412bf6a97e912a9fefc4781e2e36}	1500.00	6	Ahorro	472962195210	Banco General 	rechazada	2026-02-10 13:41:46.614552	Hoteles de la Bahia SRL 
+58	51	{https://storage.tally.so/private/20251014_124413.jpg?id=jky4RY&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImpreTRSWSIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc3MDczNzMyMn0.lBpU8ZwV9EX3zv-dbwAt0iGhtoa5CXXsPsZ47eNHyJA&signature=141d74cd6e849e8372eac4714b02dfd816a02cccae8a33d293434bc54060482f}	500.00	6	Ahorro	100017979783	Banisi	nueva	2026-02-10 15:28:43.863788	Foundever
+59	52	{https://storage.tally.so/private/8856714a-ccd6-4a09-8aae-b516f6fe607c.jpeg?id=2DeMKp&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjJEZU1LcCIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc3MDc0MzgwNH0.808pGqLEeQDhWKFWcISEAOp9kCBvMBAX4XYXUlJehKU&signature=ea616dc8c98c731871b8e5c8796455e3c409f7c976e50004d7ccc78a46198314}	200.00	4	Ahorro	409980243517	Banco general	nueva	2026-02-10 17:16:45.649712	Callio
+60	53	{https://storage.tally.so/private/inbound7618270818190907717.jpg?id=GQr9EO&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkdRcjlFTyIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc3MDc1MjMzM30.kHpik725pejBWY6il8rmOS5H4pCJLacMVWbAhOyF5Ws&signature=f41adc88bc71001d41aacd097f9d132dfbb7b786ef233aad7949c3eb560c9c29}	500.00	6	Ahorro	472994626151	Banco General 	nueva	2026-02-10 19:38:54.521207	Tigo panamá 
+61	54	{https://storage.tally.so/private/inbound9042197157012264338.pdf?id=PGA9zQ&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlBHQTl6USIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc3MDc1MjU5OX0.XAVFJzhlv3Y3525-BN7D4aKlF0P87vQL7AfEYAmV0Gc&signature=a811f8dfb6292db9dafaf61a472ce10e88827abadeaf0617057ee13db9f9cf03}	300.00	6	Ahorro	472977403688	Banco General	nueva	2026-02-10 19:43:20.434706	M&B Real Estate Investment
+62	55	{https://storage.tally.so/private/inbound632926177127401958.jpg?id=M7OZd8&accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ik03T1pkOCIsImZvcm1JZCI6InZHcng2diIsImlhdCI6MTc3MDgyNjg5OX0.Wlh-yZcM1dhg1d2vDGQ7El8WwdWvwuEDIGR5w3qM2tc&signature=1ef38d5dbc6cf25f84f19485eea7859206ad2c609e47c359c3ba1e8c1a36c502}	500.00	6	Ahorro	1100186079	CanalBank 	nueva	2026-02-11 16:21:40.374489	PUMPER S, A RECOLECCIÓN DE DESECHOS HOSPITALARIOS 
+\.
+
+
+--
+-- Name: __drizzle_migrations_id_seq; Type: SEQUENCE SET; Schema: drizzle; Owner: postgres
+--
+
+SELECT pg_catalog.setval('drizzle.__drizzle_migrations_id_seq', 4, true);
+
+
+--
+-- Name: amortizacion_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.amortizacion_id_seq', 486, true);
+
+
+--
+-- Name: companies_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.companies_id_seq', 6, true);
+
+
+--
+-- Name: pagos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.pagos_id_seq', 208, true);
+
+
+--
+-- Name: persons_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.persons_id_seq', 55, true);
+
+
+--
+-- Name: prestamos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.prestamos_id_seq', 53, true);
+
+
+--
+-- Name: solicitudes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.solicitudes_id_seq', 62, true);
+
+
+--
+-- Name: __drizzle_migrations __drizzle_migrations_pkey; Type: CONSTRAINT; Schema: drizzle; Owner: postgres
+--
+
+ALTER TABLE ONLY drizzle.__drizzle_migrations
+    ADD CONSTRAINT __drizzle_migrations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: amortizacion amortizacion_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.amortizacion
+    ADD CONSTRAINT amortizacion_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: companies companies_name_unique; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.companies
+    ADD CONSTRAINT companies_name_unique UNIQUE (name);
+
+
+--
+-- Name: companies companies_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.companies
+    ADD CONSTRAINT companies_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: pagos pagos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.pagos
+    ADD CONSTRAINT pagos_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: persons persons_cedula_unique; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.persons
+    ADD CONSTRAINT persons_cedula_unique UNIQUE (cedula);
+
+
+--
+-- Name: persons persons_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.persons
+    ADD CONSTRAINT persons_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: prestamos prestamos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.prestamos
+    ADD CONSTRAINT prestamos_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: solicitudes solicitudes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.solicitudes
+    ADD CONSTRAINT solicitudes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: amortizacion_prestamo_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX amortizacion_prestamo_idx ON public.amortizacion USING btree (prestamo_id, quincena_num);
+
+
+--
+-- Name: companies_name_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX companies_name_idx ON public.companies USING btree (name);
+
+
+--
+-- Name: persons_cedula_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX persons_cedula_idx ON public.persons USING btree (cedula);
+
+
+--
+-- Name: amortizacion amortizacion_prestamo_id_prestamos_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.amortizacion
+    ADD CONSTRAINT amortizacion_prestamo_id_prestamos_id_fk FOREIGN KEY (prestamo_id) REFERENCES public.prestamos(id) ON DELETE CASCADE;
+
+
+--
+-- Name: pagos pagos_prestamo_id_prestamos_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.pagos
+    ADD CONSTRAINT pagos_prestamo_id_prestamos_id_fk FOREIGN KEY (prestamo_id) REFERENCES public.prestamos(id) ON DELETE CASCADE;
+
+
+--
+-- Name: persons persons_company_id_companies_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.persons
+    ADD CONSTRAINT persons_company_id_companies_id_fk FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE SET NULL;
+
+
+--
+-- Name: prestamos prestamos_solicitud_id_solicitudes_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.prestamos
+    ADD CONSTRAINT prestamos_solicitud_id_solicitudes_id_fk FOREIGN KEY (solicitud_id) REFERENCES public.solicitudes(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: solicitudes solicitudes_person_id_persons_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.solicitudes
+    ADD CONSTRAINT solicitudes_person_id_persons_id_fk FOREIGN KEY (person_id) REFERENCES public.persons(id) ON DELETE RESTRICT;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict WpTYA93uPyVgU2x4LnPWbIFP8PAlNhCChCuAU7jckN6cgqG2yh5GGpfeRSyyYiF
+

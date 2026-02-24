@@ -13,6 +13,7 @@ export async function approveSolicitud(formData: FormData) {
   const interesDeseado = parseFloat(formData.get('interesDeseado') as string);
   const proximoPagoStr = formData.get('proximoPago') as string;
   const companyId = formData.get('companyId') ? parseInt(formData.get('companyId') as string) : null;
+  const duracionMeses = formData.get('duracionMeses') ? parseInt(formData.get('duracionMeses') as string) : null;
   const proximoPago = new Date(proximoPagoStr);
 
   // Fetch solicitud
@@ -31,7 +32,7 @@ export async function approveSolicitud(formData: FormData) {
   }
 
   const principal = parseFloat(solicitud.montoSolicitado);
-  const totalQuincenas = solicitud.duracionMeses * 2;
+  const totalQuincenas = (duracionMeses || solicitud.duracionMeses) * 2;
 
   const amortRows = generateFrenchAmortization(principal, interesDeseado, totalQuincenas, proximoPago);
 
