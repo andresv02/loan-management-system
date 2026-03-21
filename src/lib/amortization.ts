@@ -4,25 +4,29 @@ type AmortRowInput = Omit<NewAmortRow, 'id' | 'prestamoId'>;
 
 /**
  * Get the next quincena date (15th or last day of month)
+ * Based on fechaInicio, returns the next available quincena date
  */
-function getNextQuincena(currentDate: Date): Date {
-  const date = new Date(currentDate);
+export function getNextQuincena(fechaInicio: Date): Date {
+  const date = new Date(fechaInicio);
   date.setHours(0, 0, 0, 0);
-  const day = date.getDate();
   const year = date.getFullYear();
   const month = date.getMonth();
 
-  // If current date is before or on the 15th, return 15th
-  if (day < 15) {
-    return new Date(year, month, 15);
+  // 15th this month
+  let quincena15 = new Date(year, month, 15);
+  quincena15.setHours(0, 0, 0, 0);
+  if (quincena15 >= date) {
+    return quincena15;
   }
-  
-  // If current date is on the 15th, return last day of month
-  if (day === 15) {
-    return new Date(year, month + 1, 0);
+
+  // End of this month
+  const endOfMonth = new Date(year, month + 1, 0);
+  endOfMonth.setHours(0, 0, 0, 0);
+  if (endOfMonth >= date) {
+    return endOfMonth;
   }
-  
-  // If current date is between 15th and last day (or on last day), return 15th of next month
+
+  // 15th next month
   return new Date(year, month + 1, 15);
 }
 

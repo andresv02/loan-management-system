@@ -31,6 +31,7 @@ export function Navigation({ pendingCount = 0 }: { pendingCount?: number }) {
     { href: '/prestamos', label: 'Préstamos', icon: '💰' },
     { href: '/payments', label: 'Pagos', icon: '💳' },
     { href: '/companies', label: 'Compañías', icon: '🏢' },
+    { href: '/cotizador', label: 'Cotizador', icon: '🧮' },
   ];
 
   return (
