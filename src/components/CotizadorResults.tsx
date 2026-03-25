@@ -64,9 +64,9 @@ export function CotizadorResults({ resultado }: CotizadorResultsProps) {
       
       let y = 55;
       summaryItems.forEach(([label, value]) => {
-        doc.setFont(undefined, 'bold');
+        doc.setFont('helvetica', 'bold');
         doc.text(label, 20, y);
-        doc.setFont(undefined, 'normal');
+        doc.setFont('helvetica', 'normal');
         doc.text(value, 80, y);
         y += 8;
       });
