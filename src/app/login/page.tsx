@@ -7,8 +7,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function LoginPage() {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -18,27 +26,33 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
+    // Debug logging
+    console.log('Sending login request:', { username, password });
+
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username, password }),
       });
+
+      console.log('Response status:', res.status);
 
       if (res.ok) {
         router.push('/');
         router.refresh();
       } else {
+        const data = await res.json();
         toast({
           title: "Error",
-          description: "Invalid password",
+          description: data.error || "Usuario o contraseña inválidos",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Something went wrong",
+        description: "Ocurrió un error al iniciar sesión",
         variant: "destructive",
       });
     } finally {
@@ -52,26 +66,39 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle className="text-2xl text-center">Créditos Nacionales</CardTitle>
           <CardDescription className="text-center">
-            Enter your password to access the dashboard
+            Seleccione su usuario e ingrese la contraseña
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="username">Usuario</Label>
+              <Select value={username} onValueChange={setUsername}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar usuario" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="analyst">Analista</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Contraseña</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter password"
+                placeholder="Ingrese su contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
               />
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
+            <Button type="submit" className="w-full" disabled={loading || !username}>
+              {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
             </Button>
           </CardFooter>
         </form>

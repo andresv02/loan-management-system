@@ -1,31 +1,42 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
+import type { UserRole, SessionData } from './permissions';
 
 const secretKey = process.env.AUTH_SECRET || 'default_secret_key_change_me';
 const key = new TextEncoder().encode(secretKey);
 
-export async function encrypt(payload: any) {
-  return await new SignJWT(payload)
+export async function encrypt(payload: SessionData) {
+  return await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('24h')
     .sign(key);
 }
 
-export async function decrypt(input: string): Promise<any> {
+export async function decrypt(input: string): Promise<SessionData | null> {
   try {
     const { payload } = await jwtVerify(input, key, {
       algorithms: ['HS256'],
     });
-    return payload;
+    return {
+      user: payload.user as string,
+      role: payload.role as UserRole,
+      expires: payload.expires as string,
+    };
   } catch (error) {
     return null;
   }
 }
 
-export async function createSession() {
+export async function createSession(user: string, role: UserRole) {
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-  const session = await encrypt({ user: 'admin', expires });
+  const sessionData: SessionData = { 
+    user, 
+    role, 
+    expires: expires.toISOString() 
+  };
+  
+  const session = await encrypt(sessionData);
 
   cookies().set('session', session, { 
     expires, 
@@ -46,7 +57,7 @@ export async function deleteSession() {
   });
 }
 
-export async function getSession() {
+export async function getSession(): Promise<SessionData | null> {
   const session = cookies().get('session')?.value;
   if (!session) return null;
   return await decrypt(session);

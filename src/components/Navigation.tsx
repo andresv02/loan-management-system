@@ -12,8 +12,14 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import type { UserRole } from '@/lib/permissions';
 
-export function Navigation({ pendingCount = 0 }: { pendingCount?: number }) {
+interface NavigationProps {
+  pendingCount?: number;
+  userRole?: UserRole;
+}
+
+export function Navigation({ pendingCount = 0, userRole = 'admin' }: NavigationProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -25,7 +31,7 @@ export function Navigation({ pendingCount = 0 }: { pendingCount?: number }) {
     router.refresh();
   };
 
-  const navItems = [
+  const allNavItems = [
     { href: '/', label: 'Panel', icon: '📊' },
     { href: '/solicitudes', label: 'Solicitudes', icon: '📋' },
     { href: '/prestamos', label: 'Préstamos', icon: '💰' },
@@ -33,6 +39,11 @@ export function Navigation({ pendingCount = 0 }: { pendingCount?: number }) {
     { href: '/companies', label: 'Compañías', icon: '🏢' },
     { href: '/cotizador', label: 'Cotizador', icon: '🧮' },
   ];
+
+  // Filter nav items based on role
+  const navItems = userRole === 'analyst' 
+    ? allNavItems.filter(item => item.href !== '/companies')
+    : allNavItems;
 
   return (
     <nav className="border-b border-gray-200 bg-white shadow-sm sticky top-0 z-50">
@@ -75,13 +86,25 @@ export function Navigation({ pendingCount = 0 }: { pendingCount?: number }) {
               </Button>
             </Link>
           ))}
-          <Button 
-            variant="ghost" 
-            onClick={handleLogout}
-            className="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            Salir
-          </Button>
+          
+          {/* User Role Badge */}
+          <div className="flex items-center space-x-2 ml-2">
+            <span className={cn(
+              "px-2 py-1 rounded-full text-xs font-medium",
+              userRole === 'admin' 
+                ? "bg-purple-100 text-purple-700" 
+                : "bg-blue-100 text-blue-700"
+            )}>
+              {userRole === 'admin' ? 'Admin' : 'Analista'}
+            </span>
+            <Button 
+              variant="ghost" 
+              onClick={handleLogout}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              Salir
+            </Button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
@@ -94,6 +117,13 @@ export function Navigation({ pendingCount = 0 }: { pendingCount?: number }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+              {/* User Info */}
+              <div className="px-3 py-2 border-b">
+                <p className="text-sm font-medium">
+                  {userRole === 'admin' ? 'Administrador' : 'Analista'}
+                </p>
+              </div>
+              
               {navItems.map((item) => (
                 <DropdownMenuItem key={item.href} asChild>
                   <Link 

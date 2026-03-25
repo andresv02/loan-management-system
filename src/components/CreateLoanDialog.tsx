@@ -52,6 +52,7 @@ export function CreateLoanDialog({ companies }: CreateLoanDialogProps) {
   const [cuotaQuincenal, setCuotaQuincenal] = useState(0);
   const [fechaInicioPrestamo, setFechaInicioPrestamo] = useState<Date | undefined>();
   const [proximoPagoDate, setProximoPagoDate] = useState<Date | undefined>();
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const { toast } = useToast();
 
@@ -346,9 +347,9 @@ export function CreateLoanDialog({ companies }: CreateLoanDialogProps) {
                         <SelectValue placeholder="Seleccione duración" />
                       </SelectTrigger>
                       <SelectContent>
-                        {[1, 2, 3, 4, 5, 6].map((m) => (
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                           <SelectItem key={m} value={m.toString()}>
-                            {m} {m === 1 ? 'mes' : 'meses'}
+                            {m} {m === 1 ? 'mes' : 'meses'} ({m * 2} quincenas)
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -420,7 +421,7 @@ export function CreateLoanDialog({ companies }: CreateLoanDialogProps) {
 
                   <div className="space-y-2 flex flex-col pt-2">
                     <Label htmlFor="fechaInicioPrestamo">Fecha Inicio Préstamo</Label>
-                    <Popover>
+                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           variant={"outline"}
@@ -441,7 +442,10 @@ export function CreateLoanDialog({ companies }: CreateLoanDialogProps) {
                         <Calendar
                           mode="single"
                           selected={fechaInicioPrestamo}
-                          onSelect={setFechaInicioPrestamo}
+                          onSelect={(date) => {
+                            setFechaInicioPrestamo(date);
+                            setCalendarOpen(false);
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
