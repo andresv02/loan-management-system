@@ -64,7 +64,8 @@ export function generateFrenchAmortization(
   // Generate amortization table
   const rows: AmortRowInput[] = [];
   let saldoInicial = principal;
-  let currentDate = proximoPago;
+  // Create a copy of the date to avoid mutating the original
+  let currentDate = new Date(proximoPago);
   for (let i = 1; i <= totalQuincenas; i++) {
     let interes = round2(saldoInicial * r);
     let capital = round2(cuotaQuincenal - interes);
@@ -90,8 +91,10 @@ export function generateFrenchAmortization(
       estado: 'pendiente',
     });
     saldoInicial = saldoFinal;
-    // Use the same bi-monthly logic as in ApprovalModal
-    currentDate = getNextQuincena(currentDate);
+    // Move to next day to ensure we get the next quincena
+    const nextDate = new Date(currentDate);
+    nextDate.setDate(nextDate.getDate() + 1);
+    currentDate = getNextQuincena(nextDate);
   }
   return rows;
 }

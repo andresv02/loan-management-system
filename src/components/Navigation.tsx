@@ -42,7 +42,12 @@ export function Navigation({ pendingCount = 0, userRole = 'admin' }: NavigationP
 
   // Filter nav items based on role
   const navItems = userRole === 'analyst' 
-    ? allNavItems.filter(item => item.href !== '/companies')
+    ? allNavItems.filter(item => 
+        item.href === '/solicitudes' || 
+        item.href === '/prestamos' || 
+        item.href === '/payments' || 
+        item.href === '/cotizador'
+      )
     : allNavItems;
 
   return (
