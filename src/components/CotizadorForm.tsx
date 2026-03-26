@@ -21,6 +21,7 @@ import { CalendarIcon, Calculator, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { generateFrenchAmortization, getNextQuincena } from '@/lib/amortization';
 import { CotizadorResults } from './CotizadorResults';
+import { useToast } from '@/hooks/use-toast';
 
 interface AmortRowData {
   quincenaNum: number;
@@ -43,6 +44,8 @@ interface CotizacionResult {
 }
 
 export function CotizadorForm() {
+  const { toast } = useToast();
+  
   // Form state
   const [monto, setMonto] = useState('');
   const [duracionMeses, setDuracionMeses] = useState('6');
@@ -129,6 +132,11 @@ export function CotizadorForm() {
 
     setResultado(result);
     setShowResults(true);
+    
+    toast({
+      title: "Cotización generada",
+      description: `Cuota: ${new Intl.NumberFormat('es-PA', { style: 'currency', currency: 'PAB' }).format(result.cuotaQuincenal)}`,
+    });
   };
 
   const handleLimpiar = () => {
