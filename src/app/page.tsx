@@ -27,6 +27,13 @@ export default async function Page() {
   if (!session) {
     redirect('/login');
   }
+
+  // Redirect analyst to solicitudes
+  if (session.role === 'analyst') {
+    redirect('/solicitudes');
+  }
+
+  // Admin sees the dashboard
   // First get active prestamos
   const [prestamosData, companiesData] = await Promise.all([
     db.query.prestamos.findMany({

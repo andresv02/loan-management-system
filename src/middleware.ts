@@ -88,11 +88,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  // Redirect analyst from root to solicitudes
-  if (role === 'analyst' && pathname === '/') {
-    return NextResponse.redirect(new URL('/solicitudes', request.url));
-  }
-
   return NextResponse.next();
 }
 
