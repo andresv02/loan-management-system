@@ -13,7 +13,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     '/',
     '/solicitudes',
     '/prestamos',
-    '/payments',
     '/cotizador',
   ],
 };
@@ -21,9 +20,11 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
 // Routes that are completely blocked for analysts
 export const ANALYST_BLOCKED_ROUTES = [
   '/companies',
+  '/payments',
 ];
 
 // API routes that analysts can access
+// Note: Analyst can record payments from /prestamos page, so /api/payments is allowed
 export const ANALYST_ALLOWED_API_ROUTES = [
   '/api/login',
   '/api/logout',
