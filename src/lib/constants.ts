@@ -3,6 +3,7 @@ export const LOAN_STATUS = {
   COMPLETED: 'completada',
   LATE: 'atrasada',
   REJECTED: 'rechazada',
+  REFINANCED: 'refinanciada',
   ALL: 'todos',
 } as const;
 

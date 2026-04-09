@@ -8,7 +8,7 @@ import {
 import type { AmortRow } from '@/types';
 import { recordPayment, revertPayment } from '@/lib/actions';
 import { getEffectiveEstado, formatCurrency } from '@/lib/utils';
-import { AMORTIZATION_STATUS } from '@/lib/constants';
+import { AMORTIZATION_STATUS, LOAN_STATUS } from '@/lib/constants';
 import { useState } from 'react';
 import {
   AlertDialog,
@@ -24,9 +24,10 @@ import {
 interface AmortizationTableProps {
   data: AmortRow[];
   prestamoId: number;
+  prestamoEstado?: string;
 }
 
-export function AmortizationTable({ data, prestamoId }: AmortizationTableProps) {
+export function AmortizationTable({ data, prestamoId, prestamoEstado }: AmortizationTableProps) {
   const [revertTarget, setRevertTarget] = useState<number | null>(null);
 
   const handleCheckboxChange = async (checked: boolean, row: AmortRow) => {
@@ -73,9 +74,11 @@ export function AmortizationTable({ data, prestamoId }: AmortizationTableProps) 
               const isPreviousPaid = index === 0 || data[index - 1].estado === AMORTIZATION_STATUS.PAID;
               const isNextPaid = index < data.length - 1 && data[index + 1].estado === AMORTIZATION_STATUS.PAID;
               
+              // Disable if loan is refinanced
+              const isRefinanced = prestamoEstado === LOAN_STATUS.REFINANCED;
               // Disable if previous is not paid (force sequential)
               // Also disable unchecking if next is paid (force sequential reversal)
-              const isDisabled = !isPreviousPaid || (row.estado === AMORTIZATION_STATUS.PAID && isNextPaid);
+              const isDisabled = isRefinanced || !isPreviousPaid || (row.estado === AMORTIZATION_STATUS.PAID && isNextPaid);
 
               return (
                 <TableRow key={row.quincenaNum}>
@@ -98,15 +101,19 @@ export function AmortizationTable({ data, prestamoId }: AmortizationTableProps) 
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <input
-                      type="checkbox"
-                      checked={row.estado === AMORTIZATION_STATUS.PAID}
-                      disabled={isDisabled}
-                      onChange={(e) => handleCheckboxChange(e.target.checked, row)}
-                      className={`h-4 w-4 rounded border-2 border-gray-300 
-                        data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 
-                        ${isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'cursor-pointer'}`}
-                    />
+                    {isRefinanced ? (
+                      <span className="text-xs text-purple-600 font-medium">Refinanciado</span>
+                    ) : (
+                      <input
+                        type="checkbox"
+                        checked={row.estado === AMORTIZATION_STATUS.PAID}
+                        disabled={isDisabled}
+                        onChange={(e) => handleCheckboxChange(e.target.checked, row)}
+                        className={`h-4 w-4 rounded border-2 border-gray-300 
+                          data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 
+                          ${isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'cursor-pointer'}`}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               );

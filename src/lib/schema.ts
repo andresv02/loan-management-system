@@ -15,7 +15,7 @@ import { relations } from 'drizzle-orm';
 import { InferModel } from 'drizzle-orm';
 
 export const estadoSolicitudEnum = pgEnum('estado_solicitud', ['nueva', 'aprobada', 'rechazada']);
-export const estadoPrestamoEnum = pgEnum('estado_prestamo', ['activa', 'completada', 'atrasada', 'rechazada']);
+export const estadoPrestamoEnum = pgEnum('estado_prestamo', ['activa', 'completada', 'atrasada', 'rechazada', 'refinanciada']);
 export const estadoAmortizacionEnum = pgEnum('estado_amortizacion', ['pendiente', 'pagada', 'atrasada']);
 
 export const companies = pgTable('companies', {

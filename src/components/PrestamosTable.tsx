@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ChevronDown, MoreHorizontal, Trash2 } from 'lucide-react';
+import { ChevronDown, MoreHorizontal, Trash2, RefreshCw } from 'lucide-react';
 
 import {
   Select,
@@ -43,6 +43,7 @@ import { useLoanExport } from '@/hooks/use-loan-export';
 import { PrestamosExportDialog } from './PrestamosExportDialog';
 import { PrestamosMobileCard } from './PrestamosMobileCard';
 import { PersonInfoModal } from './PersonInfoModal';
+import { RefinanceDialog } from './RefinanceDialog';
 import { PrestamoWithDetails, Company } from '@/types/app';
 
 interface PrestamosTableProps {
@@ -209,6 +210,8 @@ export default function PrestamosTable({ data, companies = [] }: PrestamosTableP
               ? 'text-green-600 font-semibold'
               : effectiveEstado === LOAN_STATUS.ACTIVE
               ? 'text-blue-600 font-semibold'
+              : effectiveEstado === LOAN_STATUS.REFINANCED
+              ? 'text-purple-600 font-semibold'
               : ''
           }>
             {estadoLabel}
@@ -228,6 +231,9 @@ export default function PrestamosTable({ data, companies = [] }: PrestamosTableP
               empresa={prestamo.empresa}
               personInfo={prestamo.personInfo}
             />
+            {(prestamo.estado === LOAN_STATUS.ACTIVE || prestamo.estado === LOAN_STATUS.LATE) && (
+              <RefinanceDialog prestamo={prestamo} />
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 p-0">
@@ -279,6 +285,7 @@ export default function PrestamosTable({ data, companies = [] }: PrestamosTableP
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value={LOAN_STATUS.ACTIVE}>Activa</SelectItem>
                 <SelectItem value={LOAN_STATUS.COMPLETED}>Completada</SelectItem>
+                <SelectItem value={LOAN_STATUS.REFINANCED}>Refinanciada</SelectItem>
                 <SelectItem value={LOAN_STATUS.REJECTED}>Rechazada</SelectItem>
               </SelectContent>
             </Select>
@@ -397,7 +404,7 @@ export default function PrestamosTable({ data, companies = [] }: PrestamosTableP
                     <TableRow>
                       <TableCell colSpan={columns.length} className="p-0">
                         <div className="h-96 overflow-auto [&>table]:border-none">
-                          <AmortizationTable data={row.original.amortizacion} prestamoId={row.original.id} />
+                          <AmortizationTable data={row.original.amortizacion} prestamoId={row.original.id} prestamoEstado={row.original.estado} />
                         </div>
                       </TableCell>
                     </TableRow>
@@ -414,6 +421,7 @@ export default function PrestamosTable({ data, companies = [] }: PrestamosTableP
                         ? 'No hay préstamos atrasados.'
                         : 'No hay préstamos activos.';
                     }
+                    if (estadoFilter === LOAN_STATUS.REFINANCED) return 'No hay préstamos refinanciados.';
                     return `No hay préstamos ${estadoFilter}.`;
                   })()}
                 </TableCell>
@@ -444,6 +452,7 @@ export default function PrestamosTable({ data, companies = [] }: PrestamosTableP
                   ? 'No hay préstamos atrasados.'
                   : 'No hay préstamos activos.';
               }
+              if (estadoFilter === LOAN_STATUS.REFINANCED) return 'No hay préstamos refinanciados.';
               return `No hay préstamos ${estadoFilter}.`;
             })()}
           </div>

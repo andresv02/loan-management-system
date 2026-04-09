@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { amortizacion } from '@/lib/schema';
+import { amortizacion, prestamos } from '@/lib/schema';
 import { eq, ne, asc, and } from 'drizzle-orm';
 import { getEffectiveEstado } from '@/lib/utils';
 
@@ -10,6 +10,18 @@ export async function GET(
 ) {
   try {
     const prestamoId = parseInt(params.id);
+
+    const prestamo = await db.query.prestamos.findFirst({
+      where: eq(prestamos.id, prestamoId),
+    });
+
+    if (!prestamo) {
+      return NextResponse.json({ error: 'Préstamo no encontrado' }, { status: 404 });
+    }
+
+    if (prestamo.estado === 'refinanciada') {
+      return NextResponse.json({ error: 'No se pueden registrar pagos en un préstamo refinanciado' }, { status: 403 });
+    }
 
     const unpaidAmort = await db
       .select({

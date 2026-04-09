@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, RefreshCw } from 'lucide-react';
+import { RefinanceDialog } from './RefinanceDialog';
 import { AmortizationTable } from './AmortizationTable';
 import { PrestamoWithDetails } from '@/types/app';
 import { getEffectivePrestamoEstado, cn, formatCurrency, formatDate } from '@/lib/utils';
@@ -30,6 +31,8 @@ export function PrestamosMobileCard({ prestamo, isExpanded, toggleExpanded }: Pr
               ? 'bg-green-100 text-green-700'
               : effectiveEstado === LOAN_STATUS.ACTIVE
               ? 'bg-blue-100 text-blue-700'
+              : effectiveEstado === LOAN_STATUS.REFINANCED
+              ? 'bg-purple-100 text-purple-700'
               : 'bg-gray-100 text-gray-700'
           )}>
             {estadoLabel}
@@ -87,11 +90,22 @@ export function PrestamosMobileCard({ prestamo, isExpanded, toggleExpanded }: Pr
           
           {isExpanded && (
             <div className="mt-2 overflow-x-auto">
-              <AmortizationTable data={prestamo.amortizacion} prestamoId={prestamo.id} />
+              <AmortizationTable data={prestamo.amortizacion} prestamoId={prestamo.id} prestamoEstado={prestamo.estado} />
             </div>
           )}
 
           <div className="flex gap-2 mt-2">
+            {(prestamo.estado === LOAN_STATUS.ACTIVE || prestamo.estado === LOAN_STATUS.LATE) && (
+              <RefinanceDialog
+                prestamo={prestamo}
+                trigger={
+                  <Button variant="outline" size="sm" className="flex-1">
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Refinanciar
+                  </Button>
+                }
+              />
+            )}
             <Button 
               variant="destructive" 
               size="sm" 

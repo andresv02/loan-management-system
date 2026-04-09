@@ -71,6 +71,13 @@ export async function addCompany(name: string) {
 }
 
 export async function recordPayment(prestamoId: number, quincenaNum: number, amount: number, paymentDate: Date) {
+  const prestamo = await db.query.prestamos.findFirst({
+    where: eq(prestamos.id, prestamoId),
+  });
+
+  if (!prestamo) throw new Error('Préstamo no encontrado');
+  if (prestamo.estado === 'refinanciada') throw new Error('No se pueden registrar pagos en un préstamo refinanciado');
+
   // Insert payment record
   await db.insert(pagos).values({
     prestamoId,
@@ -93,11 +100,6 @@ export async function recordPayment(prestamoId: number, quincenaNum: number, amo
       eq(amortizacion.prestamoId, prestamoId),
       eq(amortizacion.quincenaNum, quincenaNum)
     ),
-  });
-
-  // Update prestamo saldo_pendiente and proximo_pago
-  const prestamo = await db.query.prestamos.findFirst({
-    where: eq(prestamos.id, prestamoId),
   });
 
   if (prestamo && amortRow) {
@@ -133,6 +135,13 @@ export async function recordPayment(prestamoId: number, quincenaNum: number, amo
 }
 
 export async function revertPayment(prestamoId: number, quincenaNum: number) {
+  const prestamo = await db.query.prestamos.findFirst({
+    where: eq(prestamos.id, prestamoId),
+  });
+
+  if (!prestamo) throw new Error('Préstamo no encontrado');
+  if (prestamo.estado === 'refinanciada') throw new Error('No se pueden revertir pagos en un préstamo refinanciado');
+
   // 1. Get the amortization row to know the capital amount
   const amortRow = await db.query.amortizacion.findFirst({
     where: and(
@@ -158,10 +167,6 @@ export async function revertPayment(prestamoId: number, quincenaNum: number) {
     ));
 
   // 4. Update prestamo balance and status
-  const prestamo = await db.query.prestamos.findFirst({
-    where: eq(prestamos.id, prestamoId),
-  });
-
   if (prestamo) {
     const capitalReverted = parseFloat(amortRow.capital);
     const currentSaldo = parseFloat(prestamo.saldoPendiente);
@@ -341,4 +346,87 @@ export async function createDirectLoan(formData: FormData) {
 
   revalidatePath('/prestamos');
   revalidatePath('/dashboard');
+}
+
+export async function refinanceLoan(formData: FormData) {
+  const oldPrestamoId = parseInt(formData.get('oldPrestamoId') as string);
+  const newPrincipal = parseFloat(formData.get('newPrincipal') as string);
+  const interesDeseado = parseFloat(formData.get('interesDeseado') as string);
+  const duracionMeses = parseInt(formData.get('duracionMeses') as string);
+  const proximoPagoStr = formData.get('proximoPago') as string;
+  const proximoPago = new Date(proximoPagoStr);
+
+  // Fetch old prestamo with solicitud and person
+  const oldPrestamo = await db.query.prestamos.findFirst({
+    where: eq(prestamos.id, oldPrestamoId),
+    with: {
+      solicitud: {
+        with: {
+          person: true,
+        },
+      },
+    },
+  });
+
+  if (!oldPrestamo) throw new Error('Préstamo no encontrado');
+
+  // Compute capital paid on old loan
+  const amortRowsOld = await db
+    .select()
+    .from(amortizacion)
+    .where(eq(amortizacion.prestamoId, oldPrestamoId));
+
+  const capitalPaid = amortRowsOld
+    .filter((row) => row.estado === 'pagada')
+    .reduce((sum, row) => sum + parseFloat(row.capital), 0);
+
+  const oldSolicitud = oldPrestamo.solicitud;
+  const person = oldSolicitud.person;
+
+  // Create new solicitud (approved)
+  const [newSolicitud] = await db.insert(solicitudes).values({
+    personId: person.id,
+    montoSolicitado: newPrincipal.toFixed(2),
+    duracionMeses,
+    tipoCuentaBancaria: oldSolicitud.tipoCuentaBancaria,
+    numeroCuenta: oldSolicitud.numeroCuenta,
+    banco: oldSolicitud.banco,
+    empresa: oldSolicitud.empresa,
+    estado: 'aprobada',
+  }).returning();
+
+  // Generate new amortization
+  const totalQuincenas = duracionMeses * 2;
+  const newAmortRows = generateFrenchAmortization(newPrincipal, interesDeseado, totalQuincenas, proximoPago);
+
+  // Create new prestamo
+  const [newPrestamo] = await db.insert(prestamos).values({
+    solicitudId: newSolicitud.id,
+    principal: newPrincipal.toFixed(2),
+    interesTotal: interesDeseado.toFixed(2),
+    cuotaQuincenal: ((newPrincipal + interesDeseado) / totalQuincenas).toFixed(2),
+    totalQuincenas,
+    proximoPago: proximoPago.toISOString().split('T')[0],
+    saldoPendiente: newPrincipal.toFixed(2),
+  }).returning();
+
+  // Insert new amortization rows
+  await db.insert(amortizacion).values(
+    newAmortRows.map((row) => ({
+      prestamoId: newPrestamo.id,
+      ...row,
+    }))
+  );
+
+  // Mark old prestamo as refinanciada
+  await db.update(prestamos)
+    .set({
+      estado: 'refinanciada',
+      saldoPendiente: '0.00',
+    })
+    .where(eq(prestamos.id, oldPrestamoId));
+
+  revalidatePath('/prestamos');
+  revalidatePath('/dashboard');
+  revalidatePath('/payments');
 }
