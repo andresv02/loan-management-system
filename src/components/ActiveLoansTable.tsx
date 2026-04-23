@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   ColumnDef,
   flexRender,
@@ -25,12 +25,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ChevronDown, ChevronRight, MoreHorizontal, Trash2 } from 'lucide-react';
+import { ChevronDown, MoreHorizontal, Trash2 } from 'lucide-react';
 import { AmortizationTable } from './AmortizationTable';
 import { deletePrestamo } from '@/lib/actions';
 import { cn, getEffectivePrestamoEstado } from '@/lib/utils';
 
-import type { Prestamo, AmortRow } from '@/types';
+import type { AmortRow } from '@/types';
 
 interface PrestamoWithPerson {
   id: number;
@@ -228,9 +228,8 @@ export function ActiveLoansTable({ data }: ActiveLoansTableProps) {
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <>
+                <React.Fragment key={row.id}>
                   <TableRow
-                    key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
                     className={cn(
                       row.getIsExpanded() ? 'bg-muted/50' : '',
@@ -251,7 +250,7 @@ export function ActiveLoansTable({ data }: ActiveLoansTableProps) {
                     ))}
                   </TableRow>
                   {row.getIsExpanded() && row.original.amortizacion && (
-                    <TableRow>
+                    <TableRow key={`${row.id}-expanded`}>
                       <TableCell colSpan={columns.length} className="p-0">
                         <div className="h-96 overflow-auto [&>table]:border-none">
                           <AmortizationTable data={row.original.amortizacion} prestamoId={row.original.id} />
@@ -259,7 +258,7 @@ export function ActiveLoansTable({ data }: ActiveLoansTableProps) {
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </React.Fragment>
               ))
             ) : (
               <TableRow>
@@ -274,7 +273,7 @@ export function ActiveLoansTable({ data }: ActiveLoansTableProps) {
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} de {table.getFilteredRowModel().rows.length} fila(s) mostrada(s).
+          {table.getRowModel().rows.length} de {table.getFilteredRowModel().rows.length} fila(s) mostrada(s).
         </div>
         <div className="flex gap-2">
           {table.getPageOptions().map(page => (
