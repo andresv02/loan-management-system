@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { pagos, prestamos, persons, solicitudes, companies, amortizacion } from '@/lib/schema';
 import { desc, eq, and, gte, lte, lt, sql, like, or } from 'drizzle-orm';
 import { NextRequest } from 'next/server';
+import { getCache, setCache } from '@/lib/cache';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -13,6 +14,16 @@ export async function GET(request: NextRequest) {
   const clientName = searchParams.get('clientName');
   const allTime = searchParams.get('allTime') === 'true';
   
+  const CACHE_KEY = 'payments:historical:alltime';
+
+  // Return cached data for all-time requests without filters
+  if (allTime && !startDate && !endDate && !companyId && !clientName) {
+    const cached = getCache(CACHE_KEY);
+    if (cached) {
+      return Response.json(cached);
+    }
+  }
+
   try {
     // Build base query with company and amortization joins
     let query = db
@@ -209,7 +220,7 @@ export async function GET(request: NextRequest) {
       name: companies.name,
     }).from(companies).orderBy(companies.name);
     
-    return Response.json({
+    const responseData = {
       payments: payments.map(p => ({
         ...p,
         montoPagado: parseFloat(p.montoPagado),
@@ -228,7 +239,14 @@ export async function GET(request: NextRequest) {
         uniqueLoans: allTimeLoans.size,
         averagePayment: totalPayments > 0 ? totalCollected / totalPayments : 0,
       },
-    });
+    };
+
+    // Cache all-time data without filters
+    if (allTime && !startDate && !endDate && !companyId && !clientName) {
+      setCache(CACHE_KEY, responseData, 300);
+    }
+
+    return Response.json(responseData);
     
   } catch (error) {
     console.error('Error fetching historical payments:', error);

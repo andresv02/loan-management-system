@@ -1,14 +1,41 @@
 import { db } from '@/lib/db';
 import { prestamos, amortizacion } from '@/lib/schema';
-import { eq, asc } from 'drizzle-orm';
+import { eq, and, asc, lte } from 'drizzle-orm';
 import { NextRequest } from 'next/server';
+import { getCache, setCache } from '@/lib/cache';
+
+const CACHE_KEY = 'payments:projections';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const monthFilter = searchParams.get('month'); // optional YYYY-MM filter
 
+  // Try cache first (even for filtered requests, we filter in memory)
+  const cached = getCache<{ projections: any[]; totals: any }>(CACHE_KEY);
+  if (cached) {
+    let projections = cached.projections;
+    if (monthFilter) {
+      projections = projections.filter((p) => p.monthKey === monthFilter);
+    }
+    const totals = projections.reduce(
+      (acc, curr) => ({
+        recibido: { total: acc.recibido.total + curr.recibido.total, capital: acc.recibido.capital + curr.recibido.capital, interes: acc.recibido.interes + curr.recibido.interes },
+        porRecibir: { total: acc.porRecibir.total + curr.porRecibir.total, capital: acc.porRecibir.capital + curr.porRecibir.capital, interes: acc.porRecibir.interes + curr.porRecibir.interes },
+        porCobrar: { total: acc.porCobrar.total + curr.porCobrar.total, capital: acc.porCobrar.capital + curr.porCobrar.capital, interes: acc.porCobrar.interes + curr.porCobrar.interes },
+        count: acc.count + curr.count,
+      }),
+      { recibido: { total: 0, capital: 0, interes: 0 }, porRecibir: { total: 0, capital: 0, interes: 0 }, porCobrar: { total: 0, capital: 0, interes: 0 }, count: 0 }
+    );
+    return Response.json({ projections, totals });
+  }
+
   try {
-    // Get ALL amortization rows for active loans (including paid)
+    // Limit to 18 months ahead for performance
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 18);
+    const maxDateStr = maxDate.toISOString().split('T')[0];
+
+    // Get amortization rows for active loans up to 18 months ahead
     const allAmort = await db
       .select({
         fechaQuincena: amortizacion.fechaQuincena,
@@ -19,7 +46,12 @@ export async function GET(request: NextRequest) {
       })
       .from(amortizacion)
       .innerJoin(prestamos, eq(amortizacion.prestamoId, prestamos.id))
-      .where(eq(prestamos.estado, 'activa'))
+      .where(
+        and(
+          eq(prestamos.estado, 'activa'),
+          lte(amortizacion.fechaQuincena, maxDateStr)
+        )
+      )
       .orderBy(asc(amortizacion.fechaQuincena));
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -111,10 +143,10 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    return Response.json({
-      projections,
-      totals,
-    });
+    const responseData = { projections, totals };
+    setCache(CACHE_KEY, responseData, 300);
+
+    return Response.json(responseData);
   } catch (error) {
     console.error('Error fetching projections:', error);
     return Response.json(

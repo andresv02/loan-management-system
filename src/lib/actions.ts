@@ -5,6 +5,7 @@ import { persons, solicitudes, prestamos, amortizacion, companies, pagos } from 
 import { eq, and, asc } from 'drizzle-orm';
 import { generateFrenchAmortization } from './amortization';
 import { revalidatePath } from 'next/cache';
+import { invalidateCache } from './cache';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
@@ -132,6 +133,9 @@ export async function recordPayment(prestamoId: number, quincenaNum: number, amo
   revalidatePath('/dashboard');
   revalidatePath('/prestamos');
   revalidatePath('/payments');
+
+  // Invalidate payment-related cache
+  invalidateCache('payments:');
 }
 
 export async function revertPayment(prestamoId: number, quincenaNum: number) {
