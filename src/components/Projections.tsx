@@ -125,11 +125,11 @@ export function Projections() {
       maximumFractionDigits: 0,
     }).format(value);
 
-  // Chart data: only future projection (porRecibir + porCobrar)
+  // Chart data: total of the month (recibido + porRecibir + porCobrar)
   const chartData = safeData.projections.map((p) => ({
     monthLabel: p.monthLabel,
-    capital: p.porRecibir.capital + p.porCobrar.capital,
-    interes: p.porRecibir.interes + p.porCobrar.interes,
+    capital: p.recibido.capital + p.porRecibir.capital + p.porCobrar.capital,
+    interes: p.recibido.interes + p.porRecibir.interes + p.porCobrar.interes,
   }));
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -223,7 +223,7 @@ export function Projections() {
         <Card className="bg-white border-gray-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-bold text-slate-800">
-              📊 Proyección Mensual de Ingresos Futuros
+              📊 Proyección Mensual de Ingresos
             </CardTitle>
           </CardHeader>
           <CardContent>

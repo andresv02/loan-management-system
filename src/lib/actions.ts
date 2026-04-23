@@ -62,6 +62,9 @@ export async function approveSolicitud(formData: FormData) {
   revalidatePath('/dashboard');
   revalidatePath('/solicitudes');
   revalidatePath('/', 'layout');
+
+  // Invalidate payment cache since a new loan was approved
+  invalidateCache('payments:');
 }
 
 export async function addCompany(name: string) {
@@ -200,6 +203,9 @@ export async function revertPayment(prestamoId: number, quincenaNum: number) {
   revalidatePath('/dashboard');
   revalidatePath('/prestamos');
   revalidatePath('/payments');
+
+  // Invalidate payment cache since a payment was reverted
+  invalidateCache('payments:');
 }
 
 export async function declineSolicitud(solicitudId: number) {
@@ -235,6 +241,9 @@ export async function deletePrestamo(prestamoId: number) {
   await db.delete(amortizacion).where(eq(amortizacion.prestamoId, prestamoId));
   revalidatePath('/dashboard');
   revalidatePath('/prestamos');
+
+  // Invalidate payment cache since a loan was deleted
+  invalidateCache('payments:');
 }
 
 export async function createDirectLoan(formData: FormData) {
@@ -350,6 +359,9 @@ export async function createDirectLoan(formData: FormData) {
 
   revalidatePath('/prestamos');
   revalidatePath('/dashboard');
+
+  // Invalidate payment cache since a new loan was created
+  invalidateCache('payments:');
 }
 
 export async function refinanceLoan(formData: FormData) {
@@ -433,4 +445,7 @@ export async function refinanceLoan(formData: FormData) {
   revalidatePath('/prestamos');
   revalidatePath('/dashboard');
   revalidatePath('/payments');
+
+  // Invalidate payment cache since a loan was refinanced
+  invalidateCache('payments:');
 }

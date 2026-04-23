@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { prestamos, amortizacion } from '@/lib/schema';
-import { eq, and, asc, lte } from 'drizzle-orm';
+import { eq, and, asc, lte, ne, or } from 'drizzle-orm';
 import { NextRequest } from 'next/server';
 import { getCache, setCache } from '@/lib/cache';
 
@@ -35,7 +35,9 @@ export async function GET(request: NextRequest) {
     maxDate.setMonth(maxDate.getMonth() + 18);
     const maxDateStr = maxDate.toISOString().split('T')[0];
 
-    // Get amortization rows for active loans up to 18 months ahead
+    // Get all amortization rows for ALL loans (active, completed, refinanced)
+    // For refinanced loans: only include PAID rows (historical), ignore pending
+    // because pending rows on a refinanced loan were replaced by the new loan schedule
     const allAmort = await db
       .select({
         fechaQuincena: amortizacion.fechaQuincena,
@@ -48,8 +50,11 @@ export async function GET(request: NextRequest) {
       .innerJoin(prestamos, eq(amortizacion.prestamoId, prestamos.id))
       .where(
         and(
-          eq(prestamos.estado, 'activa'),
-          lte(amortizacion.fechaQuincena, maxDateStr)
+          lte(amortizacion.fechaQuincena, maxDateStr),
+          or(
+            ne(prestamos.estado, 'refinanciada'),
+            eq(amortizacion.estado, 'pagada')
+          )
         )
       )
       .orderBy(asc(amortizacion.fechaQuincena));
