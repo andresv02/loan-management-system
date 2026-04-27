@@ -126,11 +126,33 @@ export function Projections() {
     }).format(value);
 
   // Chart data: total of the month (recibido + porRecibir + porCobrar)
-  const chartData = safeData.projections.map((p) => ({
-    monthLabel: p.monthLabel,
-    capital: p.recibido.capital + p.porRecibir.capital + p.porCobrar.capital,
-    interes: p.recibido.interes + p.porRecibir.interes + p.porCobrar.interes,
-  }));
+  // Always show 12 months starting from the current month
+  const now = new Date();
+
+  // Build a map of existing projection data by monthKey
+  const projectionMap = new Map(
+    safeData.projections.map((p) => [
+      p.monthKey,
+      {
+        monthLabel: p.monthLabel,
+        capital: p.recibido.capital + p.porRecibir.capital + p.porCobrar.capital,
+        interes: p.recibido.interes + p.porRecibir.interes + p.porCobrar.interes,
+      },
+    ])
+  );
+
+  // Generate 12 months starting from current month
+  const chartData = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const monthLabel = d.toLocaleDateString('es-PA', { month: 'long', year: 'numeric' });
+    const existing = projectionMap.get(monthKey);
+    return {
+      monthLabel: existing?.monthLabel || monthLabel,
+      capital: existing?.capital || 0,
+      interes: existing?.interes || 0,
+    };
+  });
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
